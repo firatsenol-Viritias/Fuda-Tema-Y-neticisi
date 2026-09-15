@@ -1,0 +1,501 @@
+{% liquid
+  assign show_countdown = false
+
+  if request.page_type == 'collection' and section.settings.enabled
+    for selected_collection in section.settings.collections
+      if selected_collection.handle == collection.handle
+        assign show_countdown = true
+        break
+      endif
+    endfor
+  endif
+%}
+
+{% if show_countdown %}
+  <section
+    id="WeeklyCollectionCountdown-{{ section.id }}"
+    class="weekly-collection-countdown"
+    data-daily-countdown
+    data-timezone-offset="180"
+    style="
+      --campaign-bg: {{ section.settings.background_color }};
+      --campaign-border: {{ section.settings.border_color }};
+      --campaign-accent: {{ section.settings.accent_color }};
+      --campaign-text: {{ section.settings.text_color }};
+      --campaign-timer-bg: {{ section.settings.timer_background }};
+      --campaign-timer-text: {{ section.settings.timer_text_color }};
+      --campaign-radius: {{ section.settings.corner_radius }}px;
+      --campaign-max-width: {{ section.settings.max_width }}px;
+      --campaign-padding-y: {{ section.settings.padding_y }}px;
+      --campaign-padding-x: {{ section.settings.padding_x }}px;
+    "
+  >
+    <div class="weekly-collection-countdown__card">
+      {% if section.settings.eyebrow != blank %}
+        <div class="weekly-collection-countdown__eyebrow">{{ section.settings.eyebrow | escape }}</div>
+      {% endif %}
+
+      {% if section.settings.badge_text != blank %}
+        <div class="weekly-collection-countdown__badge">{{ section.settings.badge_text | escape }}</div>
+      {% endif %}
+
+      {% if section.settings.text != blank %}
+        <div class="weekly-collection-countdown__text rte">{{ section.settings.text }}</div>
+      {% endif %}
+
+      {% if section.settings.end_label != blank %}
+        <div class="weekly-collection-countdown__end-label">{{ section.settings.end_label | escape }}</div>
+      {% endif %}
+
+      <div class="weekly-collection-countdown__timer" role="timer" aria-live="polite">
+        <div class="weekly-collection-countdown__group">
+          <div class="weekly-collection-countdown__digits" data-hours-digits aria-label="Kalan saat">
+            <span class="weekly-collection-countdown__digit">0</span>
+            <span class="weekly-collection-countdown__digit">0</span>
+          </div>
+          <span class="weekly-collection-countdown__unit-label">{{ section.settings.hours_label | escape }}</span>
+        </div>
+
+        <span class="weekly-collection-countdown__separator" aria-hidden="true">:</span>
+
+        <div class="weekly-collection-countdown__group">
+          <div class="weekly-collection-countdown__digits" data-minutes-digits aria-label="Kalan dakika">
+            <span class="weekly-collection-countdown__digit">0</span>
+            <span class="weekly-collection-countdown__digit">0</span>
+          </div>
+          <span class="weekly-collection-countdown__unit-label">{{ section.settings.minutes_label | escape }}</span>
+        </div>
+
+        <span class="weekly-collection-countdown__separator" aria-hidden="true">:</span>
+
+        <div class="weekly-collection-countdown__group">
+          <div class="weekly-collection-countdown__digits" data-seconds-digits aria-label="Kalan saniye">
+            <span class="weekly-collection-countdown__digit">0</span>
+            <span class="weekly-collection-countdown__digit">0</span>
+          </div>
+          <span class="weekly-collection-countdown__unit-label">{{ section.settings.seconds_label | escape }}</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <style>
+    #WeeklyCollectionCountdown-{{ section.id }} {
+      width: 100%;
+      padding-inline: var(--page-margin, 20px);
+      margin-block: {{ section.settings.margin_top }}px {{ section.settings.margin_bottom }}px;
+    }
+
+    #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__card {
+      width: min(100%, var(--campaign-max-width));
+      margin-inline: auto;
+      padding: var(--campaign-padding-y) var(--campaign-padding-x);
+      border: 2px solid var(--campaign-border);
+      border-radius: var(--campaign-radius);
+      background: var(--campaign-bg);
+      color: var(--campaign-text);
+      text-align: center;
+      box-sizing: border-box;
+    }
+
+    #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__eyebrow,
+    #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__end-label {
+      color: var(--campaign-accent);
+      font-size: clamp(1rem, 1.7vw, 1.45rem);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      max-width: 100%;
+      margin-top: 18px;
+      padding: 10px 28px;
+      border-radius: 999px;
+      background: var(--campaign-accent);
+      color: #fff;
+      font-size: clamp(1rem, 2vw, 1.65rem);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: 0.035em;
+      text-transform: uppercase;
+    }
+
+    #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__text {
+      max-width: 940px;
+      margin: 20px auto 0;
+      font-size: clamp(1rem, 2vw, 1.55rem);
+      line-height: 1.45;
+    }
+
+    #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__text p {
+      margin: 0;
+    }
+
+    #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__end-label {
+      margin-top: 26px;
+    }
+
+    #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__timer {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__group {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+    }
+
+    #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__digits {
+      display: flex;
+      gap: 5px;
+    }
+
+    #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__digit {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: clamp(42px, 5.5vw, 64px);
+      height: clamp(62px, 7.5vw, 88px);
+      overflow: hidden;
+      border-radius: 6px;
+      background: var(--campaign-timer-bg);
+      color: var(--campaign-timer-text);
+      font-size: clamp(2rem, 4.5vw, 3.5rem);
+      font-weight: 500;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
+    }
+
+    #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__digit::after {
+      content: '';
+      position: absolute;
+      inset-inline: 0;
+      top: 50%;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__separator {
+      margin-top: clamp(19px, 2.8vw, 33px);
+      color: var(--campaign-timer-bg);
+      font-size: clamp(1.7rem, 3vw, 2.7rem);
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__unit-label {
+      color: var(--campaign-text);
+      font-size: clamp(0.68rem, 1.1vw, 0.9rem);
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+
+    @media screen and (max-width: 749px) {
+      #WeeklyCollectionCountdown-{{ section.id }} {
+        padding-inline: 12px;
+      }
+
+      #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__card {
+        padding: calc(var(--campaign-padding-y) * 0.72) 14px;
+        border-width: 1.5px;
+      }
+
+      #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__badge {
+        margin-top: 14px;
+        padding: 9px 16px;
+      }
+
+      #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__text {
+        margin-top: 16px;
+      }
+
+      #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__end-label {
+        margin-top: 20px;
+      }
+
+      #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__timer {
+        gap: 6px;
+        margin-top: 14px;
+      }
+
+      #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__digits {
+        gap: 3px;
+      }
+
+      #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__digit {
+        width: 34px;
+        height: 52px;
+        font-size: 1.25rem;
+        border-radius: 4px;
+      }
+
+      #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__separator {
+        margin-top: 16px;
+        font-size: 1.65rem;
+      }
+
+      #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__unit-label {
+        font-size: 0.58rem;
+        letter-spacing: 0.1em;
+      }
+    }
+
+    @media screen and (max-width: 390px) {
+      #WeeklyCollectionCountdown-{{ section.id }} .weekly-collection-countdown__digit {
+        width: 30px;
+        height: 47px;
+        font-size: 1.55rem;
+      }
+    }
+  </style>
+
+  <script>
+    (() => {
+      const root = document.getElementById('WeeklyCollectionCountdown-{{ section.id }}');
+      if (!root || root.dataset.initialized === 'true') return;
+      root.dataset.initialized = 'true';
+
+      const timezoneOffsetMinutes = Number(root.dataset.timezoneOffset || 180);
+      const hourDigits = root.querySelector('[data-hours-digits]');
+      const minuteDigits = root.querySelector('[data-minutes-digits]');
+      const secondDigits = root.querySelector('[data-seconds-digits]');
+
+      const getNextMidnight = (now) => {
+        const shiftedNow = new Date(now.getTime() + timezoneOffsetMinutes * 60 * 1000);
+        const year = shiftedNow.getUTCFullYear();
+        const month = shiftedNow.getUTCMonth();
+        const date = shiftedNow.getUTCDate();
+        const targetAsUtc = Date.UTC(year, month, date + 1, 0, 0, 0);
+        return new Date(targetAsUtc - timezoneOffsetMinutes * 60 * 1000);
+      };
+
+      const renderDigits = (container, value, minimumLength = 2) => {
+        const characters = String(value).padStart(minimumLength, '0').split('');
+        const current = Array.from(container.children);
+
+        while (current.length < characters.length) {
+          const digit = document.createElement('span');
+          digit.className = 'weekly-collection-countdown__digit';
+          container.prepend(digit);
+          current.unshift(digit);
+        }
+
+        while (current.length > characters.length) {
+          current.shift().remove();
+        }
+
+        Array.from(container.children).forEach((digit, index) => {
+          digit.textContent = characters[index];
+        });
+      };
+
+      let target = getNextMidnight(new Date());
+
+      const update = () => {
+        const now = new Date();
+        if (now >= target) target = getNextMidnight(now);
+
+        const distance = Math.max(0, target.getTime() - now.getTime());
+        const totalHours = Math.floor(distance / 3600000);
+        const minutes = Math.floor((distance % 3600000) / 60000);
+        const seconds = Math.floor((distance % 60000) / 1000);
+
+        renderDigits(hourDigits, totalHours, 2);
+        renderDigits(minuteDigits, minutes, 2);
+        renderDigits(secondDigits, seconds, 2);
+      };
+
+      update();
+      const interval = window.setInterval(update, 1000);
+
+      document.addEventListener('shopify:section:unload', (event) => {
+        if (event.detail.sectionId === '{{ section.id }}') window.clearInterval(interval);
+      });
+    })();
+  </script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Günlük sayaç",
+  "tag": "section",
+  "class": "section-weekly-collection-countdown",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "Sayacı etkinleştir",
+      "default": true
+    },
+    {
+      "type": "collection_list",
+      "id": "collections",
+      "label": "Gösterilecek koleksiyonlar",
+      "limit": 50
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Üst başlık",
+      "default": "KAMPANYA"
+    },
+    {
+      "type": "text",
+      "id": "badge_text",
+      "label": "Yeşil etiket metni",
+      "default": "2.250 TL DEĞERİNDE 2. STRAP HEDİYE"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "Açıklama",
+      "default": "<p>Bugün strapli çantalarda 2. strap hediyenizi seçmeyi unutmayın. Kampanya sınırlı süre geçerlidir.</p>"
+    },
+    {
+      "type": "text",
+      "id": "end_label",
+      "label": "Sayaç üstü metin",
+      "default": "BUGÜN BİTİYOR"
+    },
+    {
+      "type": "text",
+      "id": "hours_label",
+      "label": "Saat etiketi",
+      "default": "SAAT"
+    },
+    {
+      "type": "text",
+      "id": "minutes_label",
+      "label": "Dakika etiketi",
+      "default": "DAKİKA"
+    },
+    {
+      "type": "text",
+      "id": "seconds_label",
+      "label": "Saniye etiketi",
+      "default": "SANİYE"
+    },
+    {
+      "type": "header",
+      "content": "Renkler"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Arka plan",
+      "default": "#F4FAF4"
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Çerçeve",
+      "default": "#2F8B3A"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Vurgu rengi",
+      "default": "#2F8B3A"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Metin rengi",
+      "default": "#111111"
+    },
+    {
+      "type": "color",
+      "id": "timer_background",
+      "label": "Sayaç kutusu",
+      "default": "#090909"
+    },
+    {
+      "type": "color",
+      "id": "timer_text_color",
+      "label": "Sayaç rakamı",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "header",
+      "content": "Boyut ve boşluk"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "min": 500,
+      "max": 1600,
+      "step": 20,
+      "unit": "px",
+      "label": "Maksimum genişlik",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "corner_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Köşe yuvarlaklığı",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "padding_y",
+      "min": 20,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Dikey iç boşluk",
+      "default": 48
+    },
+    {
+      "type": "range",
+      "id": "padding_x",
+      "min": 16,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Yatay iç boşluk",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Üst boşluk",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Alt boşluk",
+      "default": 20
+    }
+  ],
+  "presets": [
+    {
+      "name": "Günlük sayaç"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,129 @@
+{% liquid
+  assign block_settings = block.settings
+  assign bundle_product = closest.product
+  assign show_colorpuff_gift_slider = false
+  assign is_beach_bag_product = false
+  assign is_colorpuff_product = false
+
+  if bundle_product != blank
+    assign bundle_title_downcase = bundle_product.title | downcase
+
+    if bundle_title_downcase contains 'colorpuff' or bundle_title_downcase contains 'color puff'
+      assign is_colorpuff_product = true
+    endif
+
+    for bundle_product_collection in bundle_product.collections
+      if bundle_product_collection.handle == 'plaj-cantalari'
+        assign is_beach_bag_product = true
+      endif
+      if bundle_product_collection.handle == 'colorpuff' or bundle_product_collection.handle == 'color-puff'
+        assign is_colorpuff_product = true
+      endif
+    endfor
+
+    unless is_beach_bag_product or is_colorpuff_product
+      assign show_colorpuff_gift_slider = true
+    endunless
+  endif
+
+  assign source_collection = block_settings.collection_one
+
+  if source_collection == blank or source_collection.all_products_count == 0
+    assign source_collection = collections['colorpuff']
+  endif
+  if source_collection == blank or source_collection.all_products_count == 0
+    assign source_collection = collections['color-puff']
+  endif
+  if source_collection == blank or source_collection.all_products_count == 0
+    assign source_collection = collections['puff-go']
+  endif
+
+  assign source_total = source_collection.all_products_count | default: source_collection.products.size
+  assign colorpuff_keyword = 'colorpuff'
+  assign filter_colorpuff_title = false
+  if source_collection.handle == 'puff-go'
+    assign filter_colorpuff_title = true
+  endif
+%}
+
+{% if block_settings.enabled and show_colorpuff_gift_slider and source_collection != blank %}
+  <div class="fuda-bundle" {{ block.shopify_attributes }} data-fuda-bundle-slider
+    data-current-product-id="{{ closest.product.id }}"
+    data-source-handle="{{ source_collection.handle | escape }}"
+    data-source-title="ColorPuff"
+    data-source-total="{{ source_total }}"
+    data-source-page="0"
+    data-product-filter="{% if filter_colorpuff_title %}colorpuff{% endif %}"
+    data-show-collection="{{ block_settings.show_collection_name }}"
+    data-show-price="{{ block_settings.show_price }}"
+  >
+    <div class="fuda-bundle__header">
+      {% if block_settings.heading != blank %}<div class="fuda-bundle__heading">{{ block_settings.heading }}</div>{% endif %}
+      <div class="fuda-bundle__arrows" aria-label="Ürünleri kaydır">
+        <button type="button" class="fuda-bundle__arrow" data-fuda-prev aria-label="Önceki ürünler">‹</button>
+        <button type="button" class="fuda-bundle__arrow" data-fuda-next aria-label="Sonraki ürünler">›</button>
+      </div>
+    </div>
+
+    <div class="fuda-bundle__viewport">
+      <div class="fuda-bundle__track" data-fuda-track role="list">
+        {% assign rendered_products = 0 %}
+        {% for companion_product in source_collection.products limit: 50 %}
+          {% assign companion_title = companion_product.title | downcase %}
+          {% assign include_product = true %}
+          {% if filter_colorpuff_title %}
+            {% unless companion_title contains colorpuff_keyword %}{% assign include_product = false %}{% endunless %}
+          {% endif %}
+          {% if companion_product.id == closest.product.id %}{% assign include_product = false %}{% endif %}
+
+          {% if include_product and companion_product.available %}
+            {% render 'fuda-bundle-product-card', product: companion_product, source_collection: source_collection, collection_label: 'ColorPuff Hediye', show_collection_name: block_settings.show_collection_name, show_price: block_settings.show_price %}
+            {% assign rendered_products = rendered_products | plus: 1 %}
+          {% endif %}
+        {% endfor %}
+        {% if rendered_products == 0 %}
+          <div class="fuda-bundle__loading" data-fuda-bundle-loading>ColorPuff seçenekleri yükleniyor...</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <script type="module" src="{{ 'fuda-bundle-products.js' | asset_url }}"></script>
+{% endif %}
+
+{% stylesheet %}
+  .fuda-bundle { width: 100%; max-width: 100%; min-width: 0; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgb(var(--color-foreground-rgb) / .12); box-sizing: border-box; contain: inline-size; }
+  .fuda-bundle__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; min-width: 0; }
+  .fuda-bundle__heading { min-width: 0; font-size: 1rem; line-height: 1.25; font-weight: 700; }
+  .fuda-bundle__arrows { display: flex; flex: 0 0 auto; gap: 6px; }
+  .fuda-bundle__arrow { width: 32px; height: 32px; padding: 0; border: 1px solid rgb(var(--color-foreground-rgb) / .16); border-radius: 50%; background: var(--color-background); color: var(--color-foreground); font: inherit; font-size: 22px; line-height: 1; cursor: pointer; }
+  .fuda-bundle__arrow:disabled { opacity: .3; cursor: default; }
+  .fuda-bundle__viewport { width: 100%; max-width: 100%; min-width: 0; overflow: clip; }
+  .fuda-bundle__track { display: flex; width: 100%; max-width: 100%; min-width: 0; gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 1px 1px 8px; scroll-snap-type: x proximity; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; box-sizing: border-box; }
+  .fuda-bundle__track::-webkit-scrollbar { display: none; }
+  .fuda-bundle__loading { flex: 0 0 100%; padding: 16px; border: 1px dashed rgb(var(--color-foreground-rgb) / .18); border-radius: 10px; font-size: .82rem; opacity: .7; }
+  .fuda-bundle-card { flex: 0 0 180px; width: 180px; max-width: 180px; min-width: 0; overflow: hidden; border: 1px solid rgb(var(--color-foreground-rgb) / .12); border-radius: 10px; background: var(--color-background); scroll-snap-align: start; box-sizing: border-box; }
+  .fuda-bundle-card__link { display: flex; flex-direction: column; height: 100%; color: inherit; text-decoration: none; }
+  .fuda-bundle-card__media { aspect-ratio: 4 / 5; overflow: hidden; background: rgb(var(--color-foreground-rgb) / .04); }
+  .fuda-bundle-card__image, .fuda-bundle-card__placeholder { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .fuda-bundle-card__body { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; padding: 9px 10px 10px; }
+  .fuda-bundle-card__collection { overflow: hidden; font-size: .68rem; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; opacity: .65; }
+  .fuda-bundle-card__title { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: .82rem; font-weight: 600; line-height: 1.28; }
+  .fuda-bundle-card__variant { font-size: .72rem; line-height: 1.2; font-weight: 700; opacity: .72; }
+  .fuda-bundle-card__price { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; padding-top: 3px; font-size: .78rem; line-height: 1.2; }
+  .fuda-bundle-card__price s { opacity: .55; }
+  @media (max-width: 749px) { .fuda-bundle-card { flex-basis: min(42vw, 165px); width: min(42vw, 165px); max-width: 165px; } }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Birlikte Al Ürünleri",
+  "settings": [
+    { "type": "checkbox", "id": "enabled", "label": "Alanı göster", "default": true },
+    { "type": "text", "id": "heading", "label": "Başlık", "default": "ColorPuff Hediye" },
+    { "type": "collection", "id": "collection_one", "label": "ColorPuff ürünlerinin bulunduğu koleksiyon" },
+    { "type": "checkbox", "id": "show_collection_name", "label": "Ürün ailesini göster", "default": true },
+    { "type": "checkbox", "id": "show_price", "label": "Fiyatı göster", "default": true }
+  ],
+  "presets": [{ "name": "Birlikte Al Ürünleri" }]
+}
+{% endschema %}

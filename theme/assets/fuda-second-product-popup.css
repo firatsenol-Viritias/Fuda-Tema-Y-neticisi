@@ -1,0 +1,515 @@
+.fuda-upsell[hidden] { display: none !important; }
+.fuda-upsell { position: fixed; inset: 0; z-index: 999999; }
+.fuda-upsell__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, .72);
+}
+.fuda-upsell__panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: min(92dvh, 860px);
+  max-height: 92dvh;
+  background: #fff;
+  color: #111;
+  border-radius: 22px 22px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 -18px 50px rgba(0, 0, 0, .32);
+  isolation: isolate;
+}
+.fuda-upsell__header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 18px 14px;
+  background: #fff;
+  border-bottom: 1px solid #ececec;
+}
+.fuda-upsell__header > div { min-width: 0; }
+.fuda-upsell__eyebrow {
+  margin: 0 0 5px;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: .13em;
+  color: #e91e63;
+}
+.fuda-upsell__header h2 {
+  margin: 0;
+  max-width: 560px;
+  font-size: 22px;
+  line-height: 1.12;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+.fuda-upsell__header p:not(.fuda-upsell__eyebrow) {
+  margin: 7px 0 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: #5f5f5f;
+}
+.fuda-upsell__close {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border: 1px solid #dedede;
+  background: #f7f7f7;
+  color: #111;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.fuda-upsell__close svg { width: 18px; height: 18px; }
+.fuda-upsell__tabs {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 11px 14px;
+  background: #fff;
+  scrollbar-width: none;
+  border-bottom: 1px solid #ececec;
+  scroll-snap-type: x proximity;
+}
+.fuda-upsell__tabs::-webkit-scrollbar { display: none; }
+.fuda-upsell__tab {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  border: 1px solid #d8d8d8;
+  border-radius: 999px;
+  background: #fff;
+  color: #222;
+  padding: 9px 14px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.fuda-upsell__tab.is-active {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+.fuda-upsell__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 12px 18px;
+  background: #f6f6f6;
+}
+.fuda-upsell__collection.is-hidden { display: none; }
+.fuda-upsell__products {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.fuda-upsell__product {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  border: 1px solid #e2e2e2;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+}
+.fuda-upsell__image {
+  display: block;
+  width: 116px;
+  height: 142px;
+  background: #f1f1f1;
+  overflow: hidden;
+}
+.fuda-upsell__image img,
+.fuda-upsell__image svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.fuda-upsell__product-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+}
+.fuda-upsell__product-title {
+  color: #111;
+  text-decoration: none;
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: 700;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.fuda-upsell__price {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 7px;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 750;
+  color: #111;
+}
+.fuda-upsell__price s { color: #888; font-weight: 400; }
+.fuda-upsell__quick-add { margin-top: auto; padding-top: 10px; }
+.fuda-upsell__quick-add .quick-add__button {
+  min-height: 42px;
+  width: 100%;
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 8px 10px;
+}
+.fuda-upsell__quick-add .add-to-cart-icon { display: none; }
+.fuda-upsell__quick-add .is-visually-hidden-mobile {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  overflow: visible !important;
+  clip: auto !important;
+  white-space: normal !important;
+}
+.fuda-upsell__footer {
+  flex: 0 0 auto;
+  padding: 11px 14px calc(11px + env(safe-area-inset-bottom));
+  border-top: 1px solid #e5e5e5;
+  background: #fff;
+  box-shadow: 0 -8px 20px rgba(0, 0, 0, .07);
+}
+.fuda-upsell__footer span {
+  display: block;
+  color: #565656;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: center;
+  margin-bottom: 8px;
+}
+.fuda-upsell__continue {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #cfcfcf;
+  background: #fff;
+  color: #111;
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+body.fuda-upsell-open { overflow: hidden; }
+
+@media (min-width: 750px) {
+  .fuda-upsell__panel {
+    top: 50%;
+    bottom: auto;
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, -50%);
+    width: min(1080px, calc(100vw - 48px));
+    height: auto;
+    max-height: min(840px, calc(100dvh - 48px));
+    border-radius: 20px;
+  }
+  .fuda-upsell__header { padding: 22px 24px 17px; }
+  .fuda-upsell__header h2 { font-size: 28px; }
+  .fuda-upsell__tabs { padding: 13px 24px; }
+  .fuda-upsell__body { padding: 18px 24px 24px; }
+  .fuda-upsell__products { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .fuda-upsell__product { display: block; border-radius: 14px; }
+  .fuda-upsell__image { width: 100%; height: auto; aspect-ratio: 1 / 1.08; }
+  .fuda-upsell__product-info { min-height: 150px; padding: 12px; }
+  .fuda-upsell__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 14px 24px;
+  }
+  .fuda-upsell__footer span { margin: 0; text-align: left; }
+  .fuda-upsell__continue { width: auto; padding: 0 22px; }
+}
+
+/* FUDA member price and reliably visible quick-add action */
+.fuda-upsell__member-price {
+  margin-top: 10px;
+  padding: 10px 11px;
+  border: 1px solid rgba(233, 30, 99, .24);
+  border-radius: 10px;
+  background: #fff4f8;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 8px;
+  align-items: end;
+}
+.fuda-upsell__member-label {
+  grid-column: 1 / -1;
+  color: #e91e63;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.fuda-upsell__member-caption {
+  margin-top: 3px;
+  color: #555;
+  font-size: 11px;
+  line-height: 1.2;
+}
+.fuda-upsell__member-price strong {
+  color: #e91e63;
+  font-size: 17px;
+  line-height: 1;
+  font-weight: 850;
+  white-space: nowrap;
+}
+.fuda-upsell__member-price small {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  color: #777;
+  font-size: 9px;
+  line-height: 1.25;
+}
+.fuda-upsell__quick-add,
+.fuda-upsell__quick-add quick-add-component,
+.fuda-upsell__quick-add product-form-component,
+.fuda-upsell__quick-add form,
+.fuda-upsell__quick-add add-to-cart-component {
+  display: block !important;
+  width: 100% !important;
+}
+.fuda-upsell__quick-add .quick-add__button {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  min-height: 42px !important;
+  width: 100% !important;
+  margin: 0 !important;
+  justify-content: center;
+  align-items: center;
+  background: #111 !important;
+  color: #fff !important;
+  border: 1px solid #111 !important;
+}
+.fuda-upsell__quick-add .quick-add__button .add-to-cart-text__content,
+.fuda-upsell__quick-add .quick-add__button .is-visually-hidden-mobile {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  clip: auto !important;
+  clip-path: none !important;
+  white-space: normal !important;
+  border: 0 !important;
+  display: inline !important;
+}
+.fuda-upsell__quick-add .quick-add__button--add .add-to-cart-text__content > span > span::after {
+  content: '';
+}
+
+@media (max-width: 749px) {
+  .fuda-upsell__product {
+    grid-template-columns: 116px minmax(0, 1fr);
+  }
+  .fuda-upsell__image {
+    height: 100%;
+    min-height: 210px;
+  }
+  .fuda-upsell__product-info {
+    padding: 11px;
+  }
+}
+
+
+/* Final popup header and product action fixes */
+.fuda-upsell__panel::before,
+.fuda-upsell__panel::after,
+.fuda-upsell__header::before,
+.fuda-upsell__header::after {
+  content: none !important;
+  display: none !important;
+}
+
+.fuda-upsell__panel {
+  border-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.fuda-upsell__header {
+  position: relative;
+  z-index: 3;
+  background: #fff !important;
+}
+
+.fuda-upsell__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 5;
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  background: #fff !important;
+  border: 1px solid #d5d5d5 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .10);
+}
+
+.fuda-upsell__header > div {
+  padding-right: 58px;
+}
+
+.fuda-upsell__quick-add {
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.fuda-upsell__product-form,
+.fuda-upsell__product-form form {
+  display: block;
+  width: 100%;
+}
+
+.fuda-upsell__add-button {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #111;
+  border-radius: 8px;
+  background: #111;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.fuda-upsell__add-button:hover {
+  background: #2a2a2a;
+}
+
+.fuda-upsell__add-button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.fuda-upsell__add-icon,
+.fuda-upsell__add-icon svg {
+  display: block;
+  width: 17px;
+  height: 17px;
+}
+
+@media (min-width: 750px) {
+  .fuda-upsell__header {
+    padding-top: 24px;
+  }
+
+  .fuda-upsell__close {
+    top: 20px;
+    right: 22px;
+  }
+}
+
+/* Collection tabs: compact rounded rectangles, immune to theme button sizing */
+.fuda-upsell__tabs .fuda-upsell__tab {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: auto !important;
+  min-width: max-content !important;
+  max-width: none !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  aspect-ratio: auto !important;
+  border-radius: 10px !important;
+  padding: 0 15px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 749px) {
+  .fuda-upsell__tabs .fuda-upsell__tab {
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 13px !important;
+    border-radius: 9px !important;
+  }
+}
+
+.fuda-upsell__empty,
+.fuda-upsell__more-loading {
+  grid-column: 1 / -1;
+  width: 100%;
+  padding: 24px;
+  text-align: center;
+  color: rgba(0, 0, 0, 0.62);
+}
+
+
+/* Hasır + Puff & Go teklif etiketi */
+.fuda-upsell__offer-label {
+  margin-top: 9px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: #fff4f8;
+  color: #c2185b;
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 750;
+}
+
+
+/* ColorPuff renk varyantlarını popup'ta ayrı kartlar olarak göster */
+.fuda-upsell__variant-title {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 750;
+  color: #444;
+}
+.fuda-upsell__add-button {
+  display: flex;
+  width: 100%;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #111;
+  border-radius: 8px;
+  background: #111;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.fuda-upsell__add-button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+.fuda-upsell__add-icon {
+  font-size: 17px;
+  line-height: 1;
+}

@@ -1,0 +1,272 @@
+{% doc %}
+  @prompt
+    kayan yazı ekler misin , dört cümle yazacak yer olsun, ve hızını ayarlayabilelim, İlk metine ayırıcı çok yapışıyor düzeltir misin , şimdi iyice yapıştı metinler iile ayırıcı arasında fark olsun,
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-marquee-container-{{ ai_gen_id }} {
+    width: {{ block.settings.desktop_width_percent }}%;
+    max-width: 100%;
+    overflow: hidden;
+    background-color: {{ block.settings.background_color }};
+    padding: {{ block.settings.padding_vertical }}px 0;
+    position: relative;
+    display: block;
+  }
+
+  .ai-marquee-wrapper-{{ ai_gen_id }} {
+    display: flex;
+    align-items: center;
+    width: fit-content;
+    animation: ai-marquee-scroll-{{ ai_gen_id }} {{ block.settings.speed }}s linear infinite;
+  }
+
+  .ai-marquee-content-{{ ai_gen_id }} {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    gap: {{ block.settings.spacing }}px;
+  }
+
+  .ai-marquee-text-{{ ai_gen_id }} {
+    color: {{ block.settings.text_color }};
+    font-size: {{ block.settings.text_size }}px;
+    font-weight: {{ block.settings.font_weight }};
+    display: inline-block;
+  }
+
+  .ai-marquee-separator-{{ ai_gen_id }} {
+    color: {{ block.settings.separator_color }};
+    font-size: {{ block.settings.text_size }}px;
+    display: inline-block;
+  }
+
+  @keyframes ai-marquee-scroll-{{ ai_gen_id }} {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .ai-marquee-wrapper-{{ ai_gen_id }}:hover {
+    animation-play-state: {% if block.settings.pause_on_hover %}paused{% else %}running{% endif %};
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-marquee-text-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text_size | times: 0.8 }}px;
+    }
+
+    .ai-marquee-separator-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text_size | times: 0.8 }}px;
+    }
+  }
+{% endstyle %}
+
+<div
+  class="ai-marquee-container-{{ ai_gen_id }}"
+  {{ block.shopify_attributes }}
+>
+  <div class="ai-marquee-wrapper-{{ ai_gen_id }}">
+    <div class="ai-marquee-content-{{ ai_gen_id }}">
+      {% if block.settings.text_1 != blank %}
+        <span class="ai-marquee-text-{{ ai_gen_id }}">{{ block.settings.text_1 }}</span>
+        <span class="ai-marquee-separator-{{ ai_gen_id }}">{{ block.settings.separator }}</span>
+      {% endif %}
+
+      {% if block.settings.text_2 != blank %}
+        <span class="ai-marquee-text-{{ ai_gen_id }}">{{ block.settings.text_2 }}</span>
+        <span class="ai-marquee-separator-{{ ai_gen_id }}">{{ block.settings.separator }}</span>
+      {% endif %}
+
+      {% if block.settings.text_3 != blank %}
+        <span class="ai-marquee-text-{{ ai_gen_id }}">{{ block.settings.text_3 }}</span>
+        <span class="ai-marquee-separator-{{ ai_gen_id }}">{{ block.settings.separator }}</span>
+      {% endif %}
+
+      {% if block.settings.text_4 != blank %}
+        <span class="ai-marquee-text-{{ ai_gen_id }}">{{ block.settings.text_4 }}</span>
+        <span class="ai-marquee-separator-{{ ai_gen_id }}">{{ block.settings.separator }}</span>
+      {% endif %}
+    </div>
+
+    <div class="ai-marquee-content-{{ ai_gen_id }}" aria-hidden="true">
+      {% if block.settings.text_1 != blank %}
+        <span class="ai-marquee-text-{{ ai_gen_id }}">{{ block.settings.text_1 }}</span>
+        <span class="ai-marquee-separator-{{ ai_gen_id }}">{{ block.settings.separator }}</span>
+      {% endif %}
+
+      {% if block.settings.text_2 != blank %}
+        <span class="ai-marquee-text-{{ ai_gen_id }}">{{ block.settings.text_2 }}</span>
+        <span class="ai-marquee-separator-{{ ai_gen_id }}">{{ block.settings.separator }}</span>
+      {% endif %}
+
+      {% if block.settings.text_3 != blank %}
+        <span class="ai-marquee-text-{{ ai_gen_id }}">{{ block.settings.text_3 }}</span>
+        <span class="ai-marquee-separator-{{ ai_gen_id }}">{{ block.settings.separator }}</span>
+      {% endif %}
+
+      {% if block.settings.text_4 != blank %}
+        <span class="ai-marquee-text-{{ ai_gen_id }}">{{ block.settings.text_4 }}</span>
+        <span class="ai-marquee-separator-{{ ai_gen_id }}">{{ block.settings.separator }}</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Kayan yazı",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Metin içeriği"
+    },
+    {
+      "type": "text",
+      "id": "text_1",
+      "label": "1. metin",
+      "default": "Ücretsiz kargo"
+    },
+    {
+      "type": "text",
+      "id": "text_2",
+      "label": "2. metin",
+      "default": "Hızlı teslimat"
+    },
+    {
+      "type": "text",
+      "id": "text_3",
+      "label": "3. metin",
+      "default": "Güvenli ödeme"
+    },
+    {
+      "type": "text",
+      "id": "text_4",
+      "label": "4. metin",
+      "default": "Kolay iade"
+    },
+    {
+      "type": "text",
+      "id": "separator",
+      "label": "Ayırıcı",
+      "default": "•"
+    },
+    {
+      "type": "header",
+      "content": "Hız ayarları"
+    },
+    {
+      "type": "range",
+      "id": "speed",
+      "min": 5,
+      "max": 50,
+      "step": 5,
+      "unit": "s",
+      "label": "Animasyon hızı",
+      "default": 20
+    },
+    {
+      "type": "checkbox",
+      "id": "pause_on_hover",
+      "label": "Üzerine gelindiğinde duraklat",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Stil"
+    },
+    {
+      "type": "range",
+      "id": "desktop_width_percent",
+      "label": "Masaüstü genişlik",
+      "min": 50,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "min": 12,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "label": "Metin boyutu",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "id": "font_weight",
+      "label": "Font kalınlığı",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Orta"
+        },
+        {
+          "value": "600",
+          "label": "Kalın"
+        },
+        {
+          "value": "700",
+          "label": "Çok kalın"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "range",
+      "id": "spacing",
+      "min": 20,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Metinler arası boşluk",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "padding_vertical",
+      "min": 5,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "Dikey dolgu",
+      "default": 15
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Arkaplan rengi",
+      "default": "#030302"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Metin rengi",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "separator_color",
+      "label": "Ayırıcı rengi",
+      "default": "#ffffff"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Kayan yazı"
+    }
+  ]
+}
+{% endschema %}

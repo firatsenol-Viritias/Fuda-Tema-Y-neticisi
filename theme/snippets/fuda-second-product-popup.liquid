@@ -1,0 +1,117 @@
+{% comment %}
+  Plaj çantaları ve ColorPuff ürünleri hariç ürün sayfalarında ColorPuff hediye popup'ı.
+  İçerikler server-side render edilir; JS yalnızca tetikleme, sepete ekleme ve fallback yükleme için kullanılır.
+{% endcomment %}
+
+{% liquid
+  assign show_colorpuff_gift_popup = false
+  assign is_beach_bag_product = false
+  assign is_colorpuff_product = false
+
+  if request.page_type == 'product' and product != blank
+    assign product_title_downcase = product.title | downcase
+
+    if product_title_downcase contains 'colorpuff' or product_title_downcase contains 'color puff'
+      assign is_colorpuff_product = true
+    endif
+
+    for product_collection in product.collections
+      if product_collection.handle == 'plaj-cantalari'
+        assign is_beach_bag_product = true
+      endif
+      if product_collection.handle == 'colorpuff' or product_collection.handle == 'color-puff'
+        assign is_colorpuff_product = true
+      endif
+    endfor
+
+    unless is_beach_bag_product or is_colorpuff_product
+      assign show_colorpuff_gift_popup = true
+    endunless
+  endif
+%}
+
+{% if show_colorpuff_gift_popup %}
+  {% liquid
+    assign popup_collection = collections['colorpuff']
+    assign popup_filter = ''
+    if popup_collection == blank or popup_collection.all_products_count == 0
+      assign popup_collection = collections['color-puff']
+    endif
+    if popup_collection == blank or popup_collection.all_products_count == 0
+      assign popup_collection = collections['puff-go']
+      assign popup_filter = 'colorpuff'
+    endif
+  %}
+
+  <link rel="stylesheet" href="{{ 'fuda-second-product-popup.css' | asset_url }}">
+
+  <fuda-second-product-popup
+    class="fuda-upsell"
+    hidden
+    data-current-product-id="{{ product.id }}"
+    data-collection-handle="{{ popup_collection.handle }}"
+    data-product-filter="{{ popup_filter }}"
+  >
+    <div class="fuda-upsell__backdrop" data-fuda-upsell-close></div>
+    <section class="fuda-upsell__panel" role="dialog" aria-modal="true" aria-labelledby="FudaUpsellTitle" tabindex="-1">
+      <header class="fuda-upsell__header">
+        <div>
+          <p class="fuda-upsell__eyebrow">ÜRÜNÜNE ÖZEL HEDİYE</p>
+          <h2 id="FudaUpsellTitle">ColorPuff Hediye</h2>
+          <p>Hediye ColorPuff rengini seç ve sepetine ekle.</p>
+        </div>
+        <button class="fuda-upsell__close" type="button" aria-label="Kapat" data-fuda-upsell-close>{{- 'icon-close.svg' | inline_asset_content -}}</button>
+      </header>
+
+      <div class="fuda-upsell__body">
+        <div class="fuda-upsell__collection" data-fuda-panel data-fuda-collection-handle="{{ popup_collection.handle }}" role="tabpanel">
+          <div class="fuda-upsell__products" data-fuda-products>
+            {% assign popup_rendered = 0 %}
+            {% if popup_collection != blank %}
+              {% for popup_product in popup_collection.products limit: 50 %}
+                {% assign popup_title_downcase = popup_product.title | downcase %}
+                {% assign include_popup_product = true %}
+                {% if popup_filter != blank %}
+                  {% unless popup_title_downcase contains popup_filter %}{% assign include_popup_product = false %}{% endunless %}
+                {% endif %}
+
+                {% if include_popup_product %}
+                  {% for popup_variant in popup_product.variants %}
+                    {% assign popup_variant_media = popup_variant.featured_media | default: popup_product.featured_media %}
+                    <article class="fuda-upsell__product" data-variant-id="{{ popup_variant.id }}">
+                      <a class="fuda-upsell__image" href="{{ popup_product.url }}?variant={{ popup_variant.id }}" tabindex="-1">
+                        {% if popup_variant_media != blank %}
+                          {{ popup_variant_media.preview_image | image_url: width: 360 | image_tag: loading: 'lazy', widths: '180, 240, 360', sizes: '116px', alt: popup_product.title }}
+                        {% endif %}
+                      </a>
+                      <div class="fuda-upsell__product-info">
+                        <a class="fuda-upsell__product-title" href="{{ popup_product.url }}?variant={{ popup_variant.id }}">{{ popup_product.title }}</a>
+                        {% unless popup_variant.title == blank or popup_variant.title == 'Default Title' %}<div class="fuda-upsell__variant-title">{{ popup_variant.title }}</div>{% endunless %}
+                        <div class="fuda-upsell__offer-label">ColorPuff Hediye</div>
+                        <div class="fuda-upsell__quick-add">
+                          <button type="button" class="fuda-upsell__add-button" data-fuda-ajax-add data-variant-id="{{ popup_variant.id }}" {% unless popup_variant.available %}disabled{% endunless %}>
+                            <span class="fuda-upsell__add-icon" aria-hidden="true">+</span>
+                            <span data-button-text>{% if popup_variant.available %}Sepete Ekle{% else %}Tükendi{% endif %}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                    {% assign popup_rendered = popup_rendered | plus: 1 %}
+                  {% endfor %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+            {% if popup_rendered == 0 %}<p class="fuda-upsell__empty" data-fuda-popup-loading>ColorPuff ürünleri yükleniyor...</p>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <footer class="fuda-upsell__footer">
+        <span>Hediye ColorPuff ürününü sepetine eklemeyi unutma.</span>
+        <button type="button" class="fuda-upsell__continue" data-fuda-upsell-close>Alışverişe devam et</button>
+      </footer>
+    </section>
+  </fuda-second-product-popup>
+
+  <script type="module" src="{{ 'fuda-second-product-popup.js' | asset_url }}"></script>
+{% endif %}

@@ -1,0 +1,372 @@
+{%- doc -%}
+  Fuda variant card. Renders each variant as a separate collection card while preserving the Fuda card order:
+  Image → Title → Swatches → Price → Fuda member price.
+
+  @param {product} product - Shopify product object
+  @param {variant} variant - Shopify variant object
+  @param {section} section - Current section
+{%- enddoc -%}
+
+{%- liquid
+  assign card_variant = variant | default: product.selected_or_first_available_variant
+  assign card_media = card_variant.featured_media | default: product.featured_media
+  assign variant_label = ''
+  assign split_option_key = blank
+
+  if split_option_position != blank
+    assign split_option_key = 'option' | append: split_option_position
+    assign variant_label = card_variant[split_option_key]
+  else
+    for product_option in product.options_with_values
+      assign option_name_downcase = product_option.name | downcase
+      assign option_has_swatches = product_option.values | map: 'swatch' | compact | size
+
+      if option_name_downcase contains 'renk' or option_name_downcase contains 'color' or option_name_downcase contains 'colour' or option_has_swatches > 0
+        assign split_option_key = 'option' | append: product_option.position
+        assign variant_label = card_variant[split_option_key]
+        break
+      endif
+    endfor
+  endif
+
+  if variant_label == blank and card_variant.title != 'Default Title'
+    assign variant_label = card_variant.title
+  endif
+
+  assign card_title = product.title
+  if variant_label != blank and product.title contains variant_label
+    assign card_title = product.title
+  elsif variant_label != blank
+    assign card_title = product.title | append: ' - ' | append: variant_label
+  endif
+
+  assign member_price = card_variant.price | times: 80 | divided_by: 100
+  assign card_media_alt = card_media.alt | default: card_title
+
+  assign show_colorpuff_gift_badge = true
+  assign is_beach_bag_product = false
+  if collection and collection.handle == 'plaj-cantalari'
+    assign is_beach_bag_product = true
+  elsif product.template_suffix == 'plaj-cantalari'
+    assign is_beach_bag_product = true
+  else
+    for product_collection in product.collections
+      if product_collection.handle == 'plaj-cantalari'
+        assign is_beach_bag_product = true
+        break
+      endif
+    endfor
+  endif
+
+  if is_beach_bag_product
+    assign show_colorpuff_gift_badge = false
+  endif
+
+  assign colorpuff_badge_collection = blank
+  assign colorpuff_badge_filter = ''
+  assign colorpuff_badge_image = blank
+  assign badge_index_value = badge_index | default: 0
+
+  if show_colorpuff_gift_badge
+    assign colorpuff_badge_collection = collections['colorpuff']
+    if colorpuff_badge_collection == blank
+      assign colorpuff_badge_collection = collections['color-puff']
+    endif
+    if colorpuff_badge_collection == blank
+      assign colorpuff_badge_collection = collections['puff-go']
+      assign colorpuff_badge_filter = 'colorpuff'
+    endif
+
+    capture colorpuff_badge_pool
+      if colorpuff_badge_collection != blank
+        for colorpuff_product in colorpuff_badge_collection.products limit: 50
+          assign include_colorpuff_product = true
+          assign product_title_downcase = colorpuff_product.title | downcase
+
+          if colorpuff_badge_filter != blank
+            unless product_title_downcase contains colorpuff_badge_filter
+              assign include_colorpuff_product = false
+            endunless
+          endif
+
+          if include_colorpuff_product
+            for colorpuff_variant in colorpuff_product.variants
+              assign badge_variant_media = colorpuff_variant.featured_media | default: colorpuff_product.featured_media
+              if badge_variant_media == blank
+                continue
+              endif
+
+              echo badge_variant_media.preview_image | image_url: width: 180
+              echo '||'
+            endfor
+          endif
+        endfor
+      endif
+    endcapture
+
+    assign colorpuff_badge_entries = colorpuff_badge_pool | split: '||'
+    assign colorpuff_badge_total_count = 0
+
+    for badge_entry in colorpuff_badge_entries
+      if badge_entry != blank
+        assign colorpuff_badge_total_count = colorpuff_badge_total_count | plus: 1
+      endif
+    endfor
+
+    if colorpuff_badge_total_count > 0
+      assign colorpuff_badge_target = badge_index_value | modulo: colorpuff_badge_total_count
+      assign colorpuff_badge_cursor = 0
+
+      for badge_entry in colorpuff_badge_entries
+        if badge_entry != blank
+          if colorpuff_badge_cursor == colorpuff_badge_target
+            assign colorpuff_badge_image = badge_entry
+            break
+          endif
+          assign colorpuff_badge_cursor = colorpuff_badge_cursor | plus: 1
+        endif
+      endfor
+    endif
+  endif
+
+  assign fuda_has_swatches = false
+  for product_option in product.options_with_values
+    assign fuda_option_swatch_count = product_option.values | map: 'swatch' | compact | size
+    if fuda_option_swatch_count > 0
+      assign fuda_has_swatches = true
+      break
+    endif
+  endfor
+-%}
+
+<product-card
+  class="product-card size-style fuda-variant-card"
+  data-product-id="{{ product.id }}"
+  data-variant-id="{{ card_variant.id }}"
+  id="product-card-{{ section.id }}-{{ product.id }}-{{ card_variant.id }}"
+>
+  <a
+    id="product-card-link-{{ section.id }}-{{ product.id }}-{{ card_variant.id }}"
+    href="{{ card_variant.url }}"
+    class="product-card__link"
+    ref="productCardLink"
+  >
+    <span class="visually-hidden">{{ card_title }}</span>
+  </a>
+
+  <div class="product-card__content layout-panel-flex layout-panel-flex--column product-grid__card spacing-style border-style gap-style fuda-variant-card__content">
+    <div class="fuda-variant-card__media-wrap">
+      {% if show_colorpuff_gift_badge %}
+        <div class="fuda-oxford-badge" aria-hidden="true">
+          <div class="fuda-oxford-badge__image-wrap">
+            {% if colorpuff_badge_image != blank %}
+              <img
+                src="{{ colorpuff_badge_image }}"
+                alt="ColorPuff Hediyeli"
+                class="fuda-oxford-badge__image"
+                loading="lazy"
+                width="72"
+                height="72"
+              >
+            {% else %}
+              <span class="fuda-oxford-badge__fallback">CP</span>
+            {% endif %}
+          </div>
+          <div class="fuda-oxford-badge__text">ColorPuff Hediyeli</div>
+        </div>
+      {% endif %}
+      <a href="{{ card_variant.url }}" class="fuda-variant-card__media-link" ref="cardGalleryLink">
+        {%- if product.available == false or card_variant.compare_at_price > card_variant.price -%}
+          {%- liquid
+            assign fuda_discount_percent = 0
+            if card_variant.compare_at_price > card_variant.price
+              assign fuda_discount_amount = card_variant.compare_at_price | minus: card_variant.price
+              assign fuda_discount_percent = fuda_discount_amount | times: 100 | divided_by: card_variant.compare_at_price
+            endif
+          -%}
+          <div class="fuda-variant-card__sale-badge">
+            {%- if product.available == false -%}
+              {{ 'content.product_badge_sold_out' | t }}
+            {%- elsif fuda_discount_percent > 0 -%}
+              %{{ fuda_discount_percent }} İndirim
+            {%- else -%}
+              İndirimde
+            {%- endif -%}
+          </div>
+        {%- endif -%}
+
+        {%- if card_media != blank -%}
+          {{
+            card_media.preview_image
+            | image_url: width: 600
+            | image_tag:
+              loading: 'lazy',
+              sizes: '(min-width: 990px) 25vw, (min-width: 750px) 33vw, 50vw',
+              widths: '240, 360, 480, 600',
+              class: 'fuda-variant-card__image',
+              decoding: 'async',
+              fetchpriority: 'low',
+              alt: card_media_alt
+          }}
+        {%- else -%}
+          {{ 'product-apparel-1' | placeholder_svg_tag: 'fuda-variant-card__image placeholder-svg' }}
+        {%- endif -%}
+      </a>
+    </div>
+
+    <div class="fuda-variant-card__info">
+      <a class="contents user-select-text fuda-variant-card__title-link" href="{{ card_variant.url }}" ref="productTitleLink">
+        <p role="heading" aria-level="3" class="fuda-variant-card__title">{{ card_title }}</p>
+      </a>
+
+      <div class="fuda-variant-card__swatches{% unless fuda_has_swatches %} fuda-variant-card__swatches--empty{% endunless %}">
+        {%- if fuda_has_swatches -%}
+          {%- for product_option in product.options_with_values -%}
+            {%- liquid
+              assign swatch_count = product_option.values | map: 'swatch' | compact | size
+              if swatch_count == 0
+                continue
+              endif
+
+              assign swatch_option_position = product_option.position
+              assign swatch_option_key = 'option' | append: swatch_option_position
+              assign selected_option_value = card_variant[swatch_option_key]
+            -%}
+
+            <div class="fuda-variant-card__swatch-list" aria-label="{{ product_option.name | escape }}">
+              {%- for product_option_value in product_option.values -%}
+                {%- liquid
+                  assign swatch_variant = blank
+                  assign swatch_media = blank
+
+                  for variant_item in product.variants
+                    if variant_item[swatch_option_key] == product_option_value.name
+                      assign swatch_variant = variant_item
+                      if variant_item.featured_media
+                        assign swatch_media = variant_item.featured_media
+                      endif
+                      break
+                    endif
+                  endfor
+
+                  assign is_selected_swatch = false
+                  if selected_option_value == product_option_value.name
+                    assign is_selected_swatch = true
+                  endif
+                -%}
+
+                <a
+                  href="{{ swatch_variant.url | default: product.url }}"
+                  class="fuda-variant-card__swatch{% if is_selected_swatch %} is-selected{% endif %}"
+                  aria-label="{{ product_option_value.name | escape }}"
+                  title="{{ product_option_value.name | escape }}"
+                >
+                  {% render 'swatch',
+                    swatch: product_option_value.swatch,
+                    variant_image: swatch_media,
+                    label: product_option_value.name
+                  %}
+                </a>
+              {%- endfor -%}
+            </div>
+
+            {%- break -%}
+          {%- endfor -%}
+        {%- endif -%}
+      </div>
+
+      <div class="fuda-variant-card__price">
+        {%- if card_variant.compare_at_price > card_variant.price -%}
+          <span class="price-item--sale price">{{ card_variant.price | money }}</span>
+          <span class="price-item--regular compare-at-price">{{ card_variant.compare_at_price | money }}</span>
+        {%- else -%}
+          <span class="price">{{ card_variant.price | money }}</span>
+        {%- endif -%}
+      </div>
+
+      <div class="first-order-price-box first-order-price-box--card fuda-variant-card__member-price">
+        <div class="first-order-badge">Fuda Üyelerine Özel</div>
+        <div class="first-order-main">Sepette {{ member_price | money }}</div>
+      </div>
+    </div>
+  </div>
+</product-card>
+
+
+{% stylesheet %}
+  .fuda-variant-card__media-wrap {
+    position: relative;
+  }
+
+  .fuda-oxford-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 96px;
+    pointer-events: none;
+  }
+
+  .fuda-oxford-badge__image-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #ffffff;
+    border: 2px solid rgba(255,255,255,.96);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .fuda-oxford-badge__image {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .fuda-oxford-badge__fallback {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+    color: #2f8b3a;
+  }
+
+  .fuda-oxford-badge__text {
+    background: rgba(255,255,255,.97);
+    color: #111111;
+    border-radius: 999px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.15;
+    text-align: center;
+    box-shadow: 0 6px 16px rgba(0,0,0,.1);
+    white-space: normal;
+  }
+
+  @media screen and (max-width: 749px) {
+    .fuda-oxford-badge {
+      top: 8px;
+      right: 8px;
+      width: 84px;
+      gap: 4px;
+    }
+
+    .fuda-oxford-badge__image-wrap {
+      width: 52px;
+      height: 52px;
+    }
+
+    .fuda-oxford-badge__text {
+      font-size: 10px;
+      padding: 4px 7px;
+    }
+  }
+{% endstylesheet %}

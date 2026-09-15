@@ -1,0 +1,202 @@
+{% doc %}
+  @prompt
+    kayan yazı ekler misin , dört cümle yazacak yer olsun, ve hızını ayarlayabilelim, metinler arası boşluklar eşit olsun,
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-ticker-{{ ai_gen_id }} {
+    width: 100%;
+    overflow: hidden;
+    background-color: {{ block.settings.background_color }};
+    padding: {{ block.settings.vertical_padding }}px 0;
+    display: block;
+  }
+
+  .ai-ticker-track-{{ ai_gen_id }} {
+    display: flex;
+    align-items: center;
+    width: max-content;
+    animation: ai-ticker-scroll-{{ ai_gen_id }} linear infinite;
+    animation-duration: {{ block.settings.scroll_speed }}s;
+  }
+
+  .ai-ticker-track-{{ ai_gen_id }}:hover {
+    {% if block.settings.pause_on_hover %}
+      animation-play-state: paused;
+    {% endif %}
+  }
+
+  .ai-ticker-item-{{ ai_gen_id }} {
+    color: {{ block.settings.text_color }};
+    font-size: {{ block.settings.font_size }}px;
+    white-space: nowrap;
+    padding: 0 {{ block.settings.text_spacing }}px;
+    display: flex;
+    align-items: center;
+  }
+
+  @keyframes ai-ticker-scroll-{{ ai_gen_id }} {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+{% endstyle %}
+
+<ticker-banner-{{ ai_gen_id }}
+  class="ai-ticker-{{ ai_gen_id }}"
+  {{ block.shopify_attributes }}
+>
+  <div class="ai-ticker-track-{{ ai_gen_id }}">
+    {% for i in (1..4) %}
+      {% assign text_1_key = 'text_1' %}
+      {% assign text_2_key = 'text_2' %}
+      {% assign text_3_key = 'text_3' %}
+      {% assign text_4_key = 'text_4' %}
+
+      {% assign text_1 = block.settings[text_1_key] %}
+      {% assign text_2 = block.settings[text_2_key] %}
+      {% assign text_3 = block.settings[text_3_key] %}
+      {% assign text_4 = block.settings[text_4_key] %}
+
+      {% if text_1 != blank %}
+        <div class="ai-ticker-item-{{ ai_gen_id }}">{{ text_1 }}</div>
+      {% endif %}
+      {% if text_2 != blank %}
+        <div class="ai-ticker-item-{{ ai_gen_id }}">{{ text_2 }}</div>
+      {% endif %}
+      {% if text_3 != blank %}
+        <div class="ai-ticker-item-{{ ai_gen_id }}">{{ text_3 }}</div>
+      {% endif %}
+      {% if text_4 != blank %}
+        <div class="ai-ticker-item-{{ ai_gen_id }}">{{ text_4 }}</div>
+      {% endif %}
+    {% endfor %}
+  </div>
+</ticker-banner-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class TickerBanner{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.track = this.querySelector('.ai-ticker-track-{{ ai_gen_id }}');
+      }
+    }
+
+    customElements.define('ticker-banner-{{ ai_gen_id }}', TickerBanner{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Kayan yazı",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Metinler"
+    },
+    {
+      "type": "text",
+      "id": "text_1",
+      "label": "Metin 1",
+      "default": "Ücretsiz kargo tüm siparişlerde"
+    },
+    {
+      "type": "text",
+      "id": "text_2",
+      "label": "Metin 2",
+      "default": "Yeni koleksiyon geldi"
+    },
+    {
+      "type": "text",
+      "id": "text_3",
+      "label": "Metin 3",
+      "default": "%20 indirim fırsatı"
+    },
+    {
+      "type": "text",
+      "id": "text_4",
+      "label": "Metin 4",
+      "default": "Hızlı teslimat garantisi"
+    },
+    {
+      "type": "header",
+      "content": "Stil"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Arka plan rengi",
+      "default": "#030302"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Metin rengi",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "font_size",
+      "min": 12,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "label": "Yazı boyutu",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "vertical_padding",
+      "min": 5,
+      "max": 40,
+      "step": 5,
+      "unit": "px",
+      "label": "Dikey boşluk",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "text_spacing",
+      "min": 20,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "label": "Metinler arası boşluk",
+      "default": 100
+    },
+    {
+      "type": "header",
+      "content": "Hareket"
+    },
+    {
+      "type": "range",
+      "id": "scroll_speed",
+      "min": 10,
+      "max": 100,
+      "step": 5,
+      "unit": "s",
+      "label": "Kaydırma hızı",
+      "default": 30
+    },
+    {
+      "type": "checkbox",
+      "id": "pause_on_hover",
+      "label": "Üzerine gelindiğinde durdur",
+      "default": true
+    }
+  ],
+  "presets": [
+    {
+      "name": "Kayan yazı"
+    }
+  ]
+}
+{% endschema %}

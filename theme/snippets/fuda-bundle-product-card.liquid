@@ -1,0 +1,26 @@
+{% comment %}FUDA Oxford birlikte al slider kartı{% endcomment %}
+<article class="fuda-bundle-card" role="listitem" data-fuda-bundle-card data-product-id="{{ product.id }}">
+  <a class="fuda-bundle-card__link" href="{{ product.url }}">
+    <div class="fuda-bundle-card__media">
+      {% if product.featured_image %}
+        {{ product.featured_image | image_url: width: 420 | image_tag: loading: 'lazy', widths: '160, 240, 320, 420', sizes: '(max-width: 749px) 42vw, 180px', class: 'fuda-bundle-card__image', alt: product.featured_image.alt | default: product.title }}
+      {% else %}
+        {{ 'product-1' | placeholder_svg_tag: 'fuda-bundle-card__placeholder' }}
+      {% endif %}
+    </div>
+    <div class="fuda-bundle-card__body">
+      {% if show_collection_name %}
+        <span class="fuda-bundle-card__collection">{{ collection_label | default: source_collection.title }}</span>
+      {% endif %}
+      <span class="fuda-bundle-card__title">{{ product.title }}</span>
+      {% if show_price %}
+        <span class="fuda-bundle-card__price">
+          <strong>{{ product.price | money }}</strong>
+          {% if product.compare_at_price_max > product.price %}
+            <s>{{ product.compare_at_price_max | money }}</s>
+          {% endif %}
+        </span>
+      {% endif %}
+    </div>
+  </a>
+</article>

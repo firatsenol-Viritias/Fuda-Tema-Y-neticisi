@@ -1,0 +1,241 @@
+{% doc %}
+  @prompt
+    kayan yazı ekler misin , üç cümle yazacak yer olsun, ve hızını ayarlayabilelim
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-marquee-container-{{ ai_gen_id }} {
+    width: {{ block.settings.desktop_width_percent }}%;
+    overflow: hidden;
+    background-color: {{ block.settings.background_color }};
+    padding: {{ block.settings.padding }}px 0;
+    display: block;
+  }
+
+  .ai-marquee-wrapper-{{ ai_gen_id }} {
+    display: flex;
+    width: fit-content;
+    animation: ai-marquee-scroll-{{ ai_gen_id }} {{ block.settings.speed }}s linear infinite;
+  }
+
+  .ai-marquee-content-{{ ai_gen_id }} {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .ai-marquee-item-{{ ai_gen_id }} {
+    color: {{ block.settings.text_color }};
+    font-size: {{ block.settings.font_size }}px;
+    margin-right: {{ block.settings.spacing }}px;
+    display: inline-block;
+  }
+
+  .ai-marquee-separator-{{ ai_gen_id }} {
+    color: {{ block.settings.separator_color }};
+    margin-right: {{ block.settings.spacing }}px;
+    display: inline-block;
+  }
+
+  @keyframes ai-marquee-scroll-{{ ai_gen_id }} {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .ai-marquee-container-{{ ai_gen_id }}:hover .ai-marquee-wrapper-{{ ai_gen_id }} {
+    {% if block.settings.pause_on_hover %}
+      animation-play-state: paused;
+    {% endif %}
+  }
+{% endstyle %}
+
+<marquee-scroller-{{ ai_gen_id }}
+  class="ai-marquee-container-{{ ai_gen_id }}"
+  {{ block.shopify_attributes }}
+>
+  <div class="ai-marquee-wrapper-{{ ai_gen_id }}">
+    <div class="ai-marquee-content-{{ ai_gen_id }}">
+      {% if block.settings.text_1 != blank %}
+        <span class="ai-marquee-item-{{ ai_gen_id }}">{{ block.settings.text_1 }}</span>
+        <span class="ai-marquee-separator-{{ ai_gen_id }}">{{ block.settings.separator }}</span>
+      {% endif %}
+      {% if block.settings.text_2 != blank %}
+        <span class="ai-marquee-item-{{ ai_gen_id }}">{{ block.settings.text_2 }}</span>
+        <span class="ai-marquee-separator-{{ ai_gen_id }}">{{ block.settings.separator }}</span>
+      {% endif %}
+      {% if block.settings.text_3 != blank %}
+        <span class="ai-marquee-item-{{ ai_gen_id }}">{{ block.settings.text_3 }}</span>
+        <span class="ai-marquee-separator-{{ ai_gen_id }}">{{ block.settings.separator }}</span>
+      {% endif %}
+    </div>
+    <div class="ai-marquee-content-{{ ai_gen_id }}" aria-hidden="true">
+      {% if block.settings.text_1 != blank %}
+        <span class="ai-marquee-item-{{ ai_gen_id }}">{{ block.settings.text_1 }}</span>
+        <span class="ai-marquee-separator-{{ ai_gen_id }}">{{ block.settings.separator }}</span>
+      {% endif %}
+      {% if block.settings.text_2 != blank %}
+        <span class="ai-marquee-item-{{ ai_gen_id }}">{{ block.settings.text_2 }}</span>
+        <span class="ai-marquee-separator-{{ ai_gen_id }}">{{ block.settings.separator }}</span>
+      {% endif %}
+      {% if block.settings.text_3 != blank %}
+        <span class="ai-marquee-item-{{ ai_gen_id }}">{{ block.settings.text_3 }}</span>
+        <span class="ai-marquee-separator-{{ ai_gen_id }}">{{ block.settings.separator }}</span>
+      {% endif %}
+    </div>
+  </div>
+</marquee-scroller-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class MarqueeScroller{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.adjustSpeed();
+      }
+
+      adjustSpeed() {
+        const wrapper = this.querySelector('.ai-marquee-wrapper-{{ ai_gen_id }}');
+        if (wrapper) {
+          const contentWidth = wrapper.scrollWidth / 2;
+          const speed = {{ block.settings.speed }};
+          wrapper.style.animationDuration = speed + 's';
+        }
+      }
+    }
+
+    customElements.define('marquee-scroller-{{ ai_gen_id }}', MarqueeScroller{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Kayan yazı",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "İçerik"
+    },
+    {
+      "type": "text",
+      "id": "text_1",
+      "label": "Birinci cümle",
+      "default": "Hoş geldiniz"
+    },
+    {
+      "type": "text",
+      "id": "text_2",
+      "label": "İkinci cümle",
+      "default": "Ücretsiz kargo"
+    },
+    {
+      "type": "text",
+      "id": "text_3",
+      "label": "Üçüncü cümle",
+      "default": "Hızlı teslimat"
+    },
+    {
+      "type": "text",
+      "id": "separator",
+      "label": "Ayırıcı",
+      "default": "•"
+    },
+    {
+      "type": "header",
+      "content": "Stil"
+    },
+    {
+      "type": "range",
+      "id": "speed",
+      "label": "Hız",
+      "min": 5,
+      "max": 50,
+      "step": 5,
+      "unit": "s",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "font_size",
+      "label": "Yazı boyutu",
+      "min": 12,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "spacing",
+      "label": "Boşluk",
+      "min": 10,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "padding",
+      "label": "İç boşluk",
+      "min": 5,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "checkbox",
+      "id": "pause_on_hover",
+      "label": "Üzerine gelindiğinde durdur",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "desktop_width_percent",
+      "label": "Masaüstü genişlik",
+      "min": 50,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    },
+    {
+      "type": "header",
+      "content": "Renkler"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Arka plan rengi",
+      "default": "#030302"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Yazı rengi",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "separator_color",
+      "label": "Ayırıcı rengi",
+      "default": "#ffffff"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Kayan yazı"
+    }
+  ]
+}
+{% endschema %}
