@@ -35,6 +35,13 @@ if ((process.env.HTTPS_PROXY || process.env.https_proxy) && !process.env.NODE_US
 
 // --- yapilandirma -----------------------------------------------------------
 
+// Shopify her ceyrekte yeni surum yayinlar, her surum ~12 ay desteklenir.
+// Desteksiz bir surum istenirse Shopify sessizce varsayilana "ileri duser" -
+// istek calisir ama hangi sema uzerinde calistigi belirsiz kalir. Bu yuzden
+// asagida bilinen son kararli surum tutulur ve yanitin surumu ile karsilastirilir.
+// Guncel liste: https://shopify.dev/docs/api/usage/versioning
+const API_VERSION = '2026-07'
+
 async function loadDotEnv() {
   try {
     const raw = await readFile(new URL('../.env', import.meta.url), 'utf8')
@@ -50,7 +57,7 @@ async function loadDotEnv() {
 function config() {
   const store = process.env.SHOPIFY_STORE
   const token = process.env.SHOPIFY_ADMIN_TOKEN
-  const version = process.env.SHOPIFY_API_VERSION || '2025-07'
+  const version = process.env.SHOPIFY_API_VERSION || API_VERSION
 
   // SHOPIFY_PROXY_AUTH=1: token environment'in "API credentials" bolumunde tutulur
   // ve agent proxy tarafindan istek VM'den ciktiktan sonra eklenir. Bu modda token
@@ -79,6 +86,8 @@ function config() {
     token: proxyAuth ? null : token,
     proxyAuth,
     store,
+    version,
+    versionWarned: false,
   }
 }
 
@@ -127,6 +136,18 @@ async function gql(cfg, query, variables = {}, attempt = 0) {
           '  oldugunu, prefix alaninin bos oldugunu ve host listesinde bu magazanin\n' +
           '  bulundugunu kontrol et.'
         : '')
+    )
+  }
+
+  // Shopify kullanilan surumu yanit header'inda bildirir. Istedigimizden
+  // farkliysa hedefledigimiz surum artik erisilebilir degil demektir.
+  const served = res.headers.get('x-shopify-api-version')
+  if (served && served !== cfg.version && !cfg.versionWarned) {
+    cfg.versionWarned = true
+    console.error(
+      `not: ${cfg.version} surumu istendi ama Shopify ${served} ile yanitladi.\n` +
+      `  Hedeflenen surum artik desteklenmiyor olabilir. SHOPIFY_API_VERSION=${served} ayarla\n` +
+      '  veya scripts/shopify-theme.mjs icindeki API_VERSION sabitini guncelle.'
     )
   }
 
@@ -196,7 +217,7 @@ const M_UPSERT = `
 const M_DUPLICATE = `
   mutation ThemeDuplicate($id: ID!, $name: String) {
     themeDuplicate(id: $id, name: $name) {
-      theme { id name role }
+      newTheme { id name role }
       userErrors { field message }
     }
   }`
@@ -384,7 +405,7 @@ async function cmdDuplicate(cfg, opts) {
   const errs = data.themeDuplicate.userErrors
   if (errs.length) fail(errs.map(e => e.message).join('\n  '))
 
-  const t = data.themeDuplicate.theme
+  const t = data.themeDuplicate.newTheme
   console.log(`\ntamam. yeni tema: ${t.id.split('/').pop()}  ${t.role}  ${t.name}`)
   console.log('Kopyalama arka planda surer; hemen ardindan pull cekersen eksik dosya gorebilirsin.\n')
 }

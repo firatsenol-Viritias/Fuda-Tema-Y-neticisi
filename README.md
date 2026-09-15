@@ -93,10 +93,61 @@ session** acmak gerekir.
 Aksi halde istekler Shopify'a ulasmadan proxy seviyesinde 403 alir. Script bu
 durumu Shopify kaynakli 403'ten ayirt edip acikca soyler.
 
-## Dogrulanmamis nokta
+## GraphQL sema dogrulamasi
 
-Script'teki GraphQL alan adlari (`themes`, `theme.files`, `themeFilesUpsert`,
-`themeDuplicate` ve govde union tipleri) baglanti olmadan yazildi, canli
-sema uzerinde henuz dogrulanmadi. Ilk basarili baglantida `themes` komutunu
-calistirip alan adlarini teyit et; bir uyusmazlik varsa GraphQL hatasi
-alanin adini acikca soyler.
+Script'teki alan adlari 15 Eylul 2026'da Admin GraphQL API dokumantasyonuna
+(shopify.dev, `latest`) karsi tek tek dogrulandi.
+
+Dogru cikanlar:
+
+| Kullanim | Durum |
+|---|---|
+| `themes(first:)` -> `nodes { id name role updatedAt }` | dogru |
+| `theme(id: ID!)` -> `files(first:, after:)` | dogru |
+| `OnlineStoreThemeFile`: `filename size checksumMd5 contentType body` | dogru |
+| `OnlineStoreThemeFileBodyText.content` | dogru |
+| `OnlineStoreThemeFileBodyBase64.contentBase64` | dogru |
+| `OnlineStoreThemeFileBodyUrl.url` | dogru |
+| `themeFilesUpsert(themeId:, files:)` -> `upsertedThemeFiles { filename }` | dogru |
+| `userErrors { field filename message }` (`OnlineStoreThemeFilesUserErrors`) | dogru |
+| `OnlineStoreThemeFilesUpsertFileInput`: `{ filename, body: { type, value } }` | dogru |
+| `themeDuplicate(id: ID!, name: String)` argumanlari | dogru |
+
+Duzeltilen iki nokta:
+
+1. **`themeDuplicate` payload alani `theme` degil `newTheme`.** Eski haliyle
+   `duplicate` komutu her calistirmada GraphQL hatasi verirdi.
+2. **Varsayilan API surumu `2025-07` idi; 16 Temmuz 2026'da destek disi kaldi.**
+   Desteksiz surum isteginde Shopify hata vermez, sessizce varsayilan surume
+   "ileri duser" - yani hangi sema uzerinde calistigin belirsiz olur. Varsayilan
+   `2026-07` (son kararli surum) yapildi ve yanittaki `X-Shopify-Api-Version`
+   header'i istenen surumle karsilastirilip uyusmazlikta uyari basiliyor.
+
+Canli semaya karsi calistirma (`node scripts/shopify-theme.mjs themes`) henuz
+yapilamadi; asagidaki kimlik dogrulama sorunu cozulunce ilk is o olmali.
+
+## Acik sorun: Admin API kimlik dogrulamasi
+
+Durum (15 Eylul 2026):
+
+- Ag politikasi **calisiyor**. Istekler `uy2rpe-ni.myshopify.com` adresine
+  ulasiyor; yanitlar Shopify'dan geliyor (`x-request-id`, Cloudflare header'lari,
+  Shopify'a ozgu hata govdesi).
+- Kimlik dogrulama **calismiyor**. Her istek `401` ve
+  `[API] Invalid API key or access token` donuyor. Denenen tum API surumlerinde
+  (2025-07, 2026-01, 2026-07, unstable) ayni sonuc - yani sorun surum degil.
+- Session icinde `SHOPIFY_ADMIN_TOKEN` ya da baska bir Shopify ortam degiskeni
+  **yok**; agent proxy de `X-Shopify-Access-Token` header'ini eklemiyor gorunuyor.
+
+Kontrol edilecekler (environment ayarlarinda, claude.ai/code > bulut ikonu >
+dislice > **API credentials**):
+
+1. Credential gercekten kaydedildi mi?
+2. `Custom header` adi tam olarak `X-Shopify-Access-Token` mi? (prefix alani BOS)
+3. `Allowed websites` icinde `uy2rpe-ni.myshopify.com` var mi?
+4. Token hala gecerli mi - Admin > Apps > Develop apps > [app] > API credentials.
+   Token iptal edilmis veya baska bir magazaya ait olabilir.
+5. App'e `read_themes` ve `write_themes` scope'lari verilip **kaydedildi** mi?
+
+Ayar degisikligi container ayaga kalkarken uygulanir: kaydettikten sonra **yeni
+bir session** acmak gerekir.
