@@ -14,8 +14,24 @@
  */
 
 import { readFile, writeFile, mkdir, readdir, stat } from 'node:fs/promises'
+import { spawnSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
+
+// Node 22'nin global fetch'i HTTPS_PROXY'yi yalnizca NODE_USE_ENV_PROXY=1 ile,
+// o da process baslangicinda okur - calisma aninda ayarlamak ise yaramaz.
+// Proxy arkasindaki ortamlarda (Claude Code cloud session gibi) proxy'siz giden
+// istek Shopify'a hic ulasmadan 403 alir ve bu "token gecersiz" gibi gorunur.
+// Bu yuzden proxy tanimliysa kendimizi bir kez o degiskenle yeniden calistiriyoruz.
+if ((process.env.HTTPS_PROXY || process.env.https_proxy) && !process.env.NODE_USE_ENV_PROXY) {
+  const r = spawnSync(
+    process.execPath,
+    ['--disable-warning=UNDICI-EHPA', fileURLToPath(import.meta.url), ...process.argv.slice(2)],
+    { stdio: 'inherit', env: { ...process.env, NODE_USE_ENV_PROXY: '1' } },
+  )
+  process.exit(r.status ?? 1)
+}
 
 // --- yapilandirma -----------------------------------------------------------
 
@@ -39,18 +55,16 @@ function config() {
   // SHOPIFY_PROXY_AUTH=1: token environment'in "API credentials" bolumunde tutulur
   // ve agent proxy tarafindan istek VM'den ciktiktan sonra eklenir. Bu modda token
   // session icinde hic bulunmaz - tercih edilen yol.
-  const proxyAuth = process.env.SHOPIFY_PROXY_AUTH === '1'
+  // Token yoksa proxy modunu varsay: header'i biz gondermeyiz, agent proxy ekler.
+  const proxyAuth = process.env.SHOPIFY_PROXY_AUTH === '1' || !token
 
   if (!store) fail('SHOPIFY_STORE tanimli degil. Ornek: uy2rpe-ni.myshopify.com')
 
+  if (proxyAuth && !token && process.env.SHOPIFY_PROXY_AUTH !== '1') {
+    console.error('not: SHOPIFY_ADMIN_TOKEN yok, kimlik header\'i agent proxy\'den bekleniyor.')
+  }
+
   if (!proxyAuth) {
-    if (!token) {
-      fail(
-        'SHOPIFY_ADMIN_TOKEN tanimli degil.\n' +
-        '  Token\'i environment\'in "API credentials" bolumunde tutuyorsan\n' +
-        '  SHOPIFY_PROXY_AUTH=1 ayarla; header\'i proxy ekler.'
-      )
-    }
     if (!token.startsWith('shpat_')) {
       fail(
         `SHOPIFY_ADMIN_TOKEN "shpat_" ile baslamiyor (verilen prefix: ${token.slice(0, 6)}...).\n` +
