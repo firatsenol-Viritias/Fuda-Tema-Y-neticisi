@@ -1,0 +1,8 @@
+# Kimlik bilgileri - ASLA commit edilmez
+.env
+.env.local
+*.token
+
+# Shopify'dan çekilen tema dosyaları icin calisma dizini
+node_modules/
+.DS_Store
