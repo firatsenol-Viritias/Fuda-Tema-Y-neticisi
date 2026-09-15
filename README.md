@@ -5,16 +5,44 @@ tutmak ve Admin GraphQL API uzerinden senkronize etmek icin kullanilir.
 
 ## Kurulum
 
+Token Shopify Admin'den alinir: Settings > Apps and sales channels
+> Develop apps > [app] > API credentials > Admin API access token
+(`shpat_` ile baslar). Gerekli scope'lar: `read_themes`, `write_themes`.
+
+Token'i saklamanin iki yolu var.
+
+### Yol 1 (tercih edilen): environment API credentials
+
+Token cloud environment'in **API credentials** bolumunde durur. Agent proxy
+header'i istek VM'den ciktiktan sonra ekler; token session icinde hicbir yerde
+bulunmaz, ajan onu goremez.
+
+claude.ai/code > mesaj kutusunun ustundeki bulut ikonu > environment'in dislisi
+> **API credentials** > **Add credential**:
+
+    Name             : Shopify Admin API
+    Allowed websites : uy2rpe-ni.myshopify.com
+    Custom header    : X-Shopify-Access-Token   (prefix alanini BOS birak)
+    Value            : shpat_...
+
+Sonra:
+
 ```bash
 cp .env.example .env
-# .env icine SHOPIFY_ADMIN_TOKEN degerini yaz (shpat_ ile baslar)
+# .env icinde SHOPIFY_PROXY_AUTH=1 satirini ac, SHOPIFY_ADMIN_TOKEN'i sil
 ```
 
-Token Shopify Admin'den alinir:
-Settings > Apps and sales channels > Develop apps > [app] > API credentials
-> Admin API access token. Gerekli scope'lar: `read_themes`, `write_themes`.
+Pro ve Max planlarinda mevcut; Team/Enterprise'da bu bolum gorunmez.
 
-`.env` gitignore'dadir. Token'i hicbir zaman commit etme.
+### Yol 2: .env dosyasi
+
+```bash
+cp .env.example .env
+# .env icine SHOPIFY_ADMIN_TOKEN degerini yaz
+```
+
+`.env` gitignore'dadir, ama container icinde acik durur. Yol 1 mumkunse onu sec.
+Token'i hicbir zaman commit etme.
 
 ## Kullanim
 
@@ -55,7 +83,15 @@ uy2rpe-ni.myshopify.com   # Admin API
 cdn.shopify.com           # binary asset'ler (gorsel, font) buradan iner
 ```
 
-Aksi halde istekler Shopify'a ulasmadan proxy seviyesinde 403 alir.
+Ayar yeri: claude.ai/code > mesaj kutusunun ustundeki bulut ikonu >
+environment'in dislisi > **Network access** > **Custom**. "Also include default
+list of common package managers" isaretli kalsin, yoksa npm erisimi de kapanir.
+
+Degisiklik container ayaga kalkarken uygulanir; kaydettikten sonra **yeni bir
+session** acmak gerekir.
+
+Aksi halde istekler Shopify'a ulasmadan proxy seviyesinde 403 alir. Script bu
+durumu Shopify kaynakli 403'ten ayirt edip acikca soyler.
 
 ## Dogrulanmamis nokta
 

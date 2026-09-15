@@ -36,16 +36,36 @@ function config() {
   const token = process.env.SHOPIFY_ADMIN_TOKEN
   const version = process.env.SHOPIFY_API_VERSION || '2025-07'
 
+  // SHOPIFY_PROXY_AUTH=1: token environment'in "API credentials" bolumunde tutulur
+  // ve agent proxy tarafindan istek VM'den ciktiktan sonra eklenir. Bu modda token
+  // session icinde hic bulunmaz - tercih edilen yol.
+  const proxyAuth = process.env.SHOPIFY_PROXY_AUTH === '1'
+
   if (!store) fail('SHOPIFY_STORE tanimli degil. Ornek: uy2rpe-ni.myshopify.com')
-  if (!token) fail('SHOPIFY_ADMIN_TOKEN tanimli degil.')
-  if (!token.startsWith('shpat_')) {
-    fail(
-      `SHOPIFY_ADMIN_TOKEN "shpat_" ile baslamiyor (verilen prefix: ${token.slice(0, 6)}...).\n` +
-      '  "shpss_" bir app secret key\'dir, Admin API kimlik dogrulamasi icin kullanilamaz.\n' +
-      '  Admin > Settings > Apps > Develop apps > [app] > API credentials > Admin API access token'
-    )
+
+  if (!proxyAuth) {
+    if (!token) {
+      fail(
+        'SHOPIFY_ADMIN_TOKEN tanimli degil.\n' +
+        '  Token\'i environment\'in "API credentials" bolumunde tutuyorsan\n' +
+        '  SHOPIFY_PROXY_AUTH=1 ayarla; header\'i proxy ekler.'
+      )
+    }
+    if (!token.startsWith('shpat_')) {
+      fail(
+        `SHOPIFY_ADMIN_TOKEN "shpat_" ile baslamiyor (verilen prefix: ${token.slice(0, 6)}...).\n` +
+        '  "shpss_" bir app secret key\'dir, Admin API kimlik dogrulamasi icin kullanilamaz.\n' +
+        '  Admin > Settings > Apps > Develop apps > [app] > API credentials > Admin API access token'
+      )
+    }
   }
-  return { endpoint: `https://${store}/admin/api/${version}/graphql.json`, token, store }
+
+  return {
+    endpoint: `https://${store}/admin/api/${version}/graphql.json`,
+    token: proxyAuth ? null : token,
+    proxyAuth,
+    store,
+  }
 }
 
 function fail(msg) {
@@ -61,8 +81,9 @@ async function gql(cfg, query, variables = {}, attempt = 0) {
     res = await fetch(cfg.endpoint, {
       method: 'POST',
       headers: {
-        'X-Shopify-Access-Token': cfg.token,
         'Content-Type': 'application/json',
+        // proxyAuth modunda header'i agent proxy ekler
+        ...(cfg.token ? { 'X-Shopify-Access-Token': cfg.token } : {}),
       },
       body: JSON.stringify({ query, variables }),
     })
@@ -84,7 +105,15 @@ async function gql(cfg, query, variables = {}, attempt = 0) {
         `  environment ayarlarindan ${cfg.store} ve cdn.shopify.com domainlerine izin verilmesi gerekir.`
       )
     }
-    fail(`API ${res.status} dondu - token gecersiz veya gerekli scope yok (read_themes / write_themes).`)
+    fail(
+      `API ${res.status} dondu - token gecersiz veya gerekli scope yok (read_themes / write_themes).` +
+      (cfg.proxyAuth
+        ? '\n  SHOPIFY_PROXY_AUTH=1 aktif: proxy header\'i ekleyemedi olabilir.\n' +
+          '  environment > API credentials altinda header adinin X-Shopify-Access-Token\n' +
+          '  oldugunu, prefix alaninin bos oldugunu ve host listesinde bu magazanin\n' +
+          '  bulundugunu kontrol et.'
+        : '')
+    )
   }
 
   // Throttle: ustel geri cekilme ile en fazla 5 deneme
@@ -373,7 +402,8 @@ Shopify tema senkronizasyonu
             [--dry-run] [dosya...]
   duplicate --theme <id|main> --name "X"    tema kopyasi olustur
 
-Ortam degiskenleri: SHOPIFY_STORE, SHOPIFY_ADMIN_TOKEN, SHOPIFY_API_VERSION
+Ortam degiskenleri: SHOPIFY_STORE, SHOPIFY_API_VERSION
+  Kimlik: SHOPIFY_ADMIN_TOKEN (shpat_...) veya SHOPIFY_PROXY_AUTH=1
 `
 
 async function main() {
