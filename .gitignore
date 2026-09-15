@@ -6,3 +6,6 @@
 # Shopify'dan çekilen tema dosyaları icin calisma dizini
 node_modules/
 .DS_Store
+
+# client_credentials grant ile alinan token onbellegi
+.shopify-token.json

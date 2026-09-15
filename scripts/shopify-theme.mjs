@@ -56,38 +56,132 @@ async function loadDotEnv() {
 
 function config() {
   const store = process.env.SHOPIFY_STORE
-  const token = process.env.SHOPIFY_ADMIN_TOKEN
   const version = process.env.SHOPIFY_API_VERSION || API_VERSION
-
-  // SHOPIFY_PROXY_AUTH=1: token environment'in "API credentials" bolumunde tutulur
-  // ve agent proxy tarafindan istek VM'den ciktiktan sonra eklenir. Bu modda token
-  // session icinde hic bulunmaz - tercih edilen yol.
-  // Token yoksa proxy modunu varsay: header'i biz gondermeyiz, agent proxy ekler.
-  const proxyAuth = process.env.SHOPIFY_PROXY_AUTH === '1' || !token
+  const token = process.env.SHOPIFY_ADMIN_TOKEN
+  const clientId = process.env.SHOPIFY_CLIENT_ID
+  const clientSecret = process.env.SHOPIFY_CLIENT_SECRET
 
   if (!store) fail('SHOPIFY_STORE tanimli degil. Ornek: uy2rpe-ni.myshopify.com')
 
-  if (proxyAuth && !token && process.env.SHOPIFY_PROXY_AUTH !== '1') {
-    console.error('not: SHOPIFY_ADMIN_TOKEN yok, kimlik header\'i agent proxy\'den bekleniyor.')
+  // Kimlik dogrulama modu. Oncelik sirasi bilerek boyle:
+  //
+  // 1. client_credentials - app'in kendi kimlik bilgileriyle (client id + secret)
+  //    24 saatlik bir access token alinir. Kendini yeniledigi icin tercih edilen
+  //    yoldur. Admin panelinden olusturulan custom app'ler artik yeni kayit
+  //    kabul etmiyor; "kendiliginden uretilen" token bu grant'tan geliyor.
+  // 2. token - elde hazir bir shpat_ token varsa dogrudan kullanilir (eski
+  //    admin-created custom app'ler icin).
+  // 3. proxy - token session icinde hic tutulmaz, agent proxy header'i ekler.
+  let mode
+  if (clientId && clientSecret) mode = 'client_credentials'
+  else if (token) mode = 'token'
+  else mode = 'proxy'
+
+  if (mode === 'token' && !token.startsWith('shpat_')) {
+    fail(
+      `SHOPIFY_ADMIN_TOKEN "shpat_" ile baslamiyor (verilen prefix: ${token.slice(0, 6)}...).\n` +
+      '  "shpss_" app secret key\'dir; Admin API\'ye dogrudan giris yapmaz ama\n' +
+      '  SHOPIFY_CLIENT_SECRET olarak SHOPIFY_CLIENT_ID ile birlikte kullanilabilir -\n' +
+      '  script o ikisinden kendisi token uretir.'
+    )
   }
 
-  if (!proxyAuth) {
-    if (!token.startsWith('shpat_')) {
-      fail(
-        `SHOPIFY_ADMIN_TOKEN "shpat_" ile baslamiyor (verilen prefix: ${token.slice(0, 6)}...).\n` +
-        '  "shpss_" bir app secret key\'dir, Admin API kimlik dogrulamasi icin kullanilamaz.\n' +
-        '  Admin > Settings > Apps > Develop apps > [app] > API credentials > Admin API access token'
-      )
-    }
+  if (mode === 'proxy' && process.env.SHOPIFY_PROXY_AUTH !== '1') {
+    console.error(
+      'not: kimlik bilgisi bulunamadi, header agent proxy\'den bekleniyor.\n' +
+      '  .env icine SHOPIFY_CLIENT_ID ve SHOPIFY_CLIENT_SECRET yazmak en saglam yol.'
+    )
   }
 
   return {
     endpoint: `https://${store}/admin/api/${version}/graphql.json`,
-    token: proxyAuth ? null : token,
-    proxyAuth,
+    tokenEndpoint: `https://${store}/admin/oauth/access_token`,
+    token: mode === 'token' ? token : null,
+    mode,
+    proxyAuth: mode === 'proxy',
+    clientId,
+    clientSecret,
     store,
     version,
     versionWarned: false,
+  }
+}
+
+// --- client_credentials grant ------------------------------------------------
+//
+// POST /admin/oauth/access_token ile app'in kendi kimlik bilgileri 24 saatlik
+// bir access token'a cevrilir (merchant etkilesimi gerekmez). Token disk'e
+// onbelleklenir; her komut yeni token istemez, suresi dolunca kendini yeniler.
+// https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens
+
+const TOKEN_CACHE = new URL('../.shopify-token.json', import.meta.url)
+const TOKEN_SKEW_MS = 120_000  // suresi dolmadan 2 dk once yenile
+
+// Onbellegi hangi app + magaza icin aldigimizi isaretler. Secret'in kendisi
+// hicbir zaman diske yazilmaz, sadece parmak izi.
+const fingerprint = cfg =>
+  createHash('sha256').update(`${cfg.store}|${cfg.clientId}`).digest('hex').slice(0, 16)
+
+async function readCachedToken(cfg) {
+  try {
+    const c = JSON.parse(await readFile(TOKEN_CACHE, 'utf8'))
+    if (c.fingerprint !== fingerprint(cfg)) return null
+    if (Date.now() + TOKEN_SKEW_MS >= c.expiresAt) return null
+    return c
+  } catch {
+    return null
+  }
+}
+
+async function requestToken(cfg) {
+  let res
+  try {
+    res = await fetch(cfg.tokenEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id: cfg.clientId,
+        client_secret: cfg.clientSecret,
+        grant_type: 'client_credentials',
+      }),
+    })
+  } catch (err) {
+    fail(
+      `${cfg.store} token ucundan token alinamadi: ${err.message}\n` +
+      '  Bu ortamin ag politikasi disariya cikisi engelliyor olabilir.'
+    )
+  }
+
+  const json = await res.json().catch(() => null)
+  if (!res.ok || !json?.access_token) {
+    fail(
+      `token alinamadi (HTTP ${res.status}): ${json?.error_description || json?.error || 'bilinmeyen hata'}\n` +
+      '  SHOPIFY_CLIENT_ID ve SHOPIFY_CLIENT_SECRET degerlerini kontrol et.\n' +
+      '  Ikisi de Shopify Admin > Settings > Apps > [app] > API credentials altinda.\n' +
+      '  App\'in bu magazaya kurulu ve read_themes/write_themes scope\'larina sahip olmasi gerekir.'
+    )
+  }
+
+  const cache = {
+    fingerprint: fingerprint(cfg),
+    accessToken: json.access_token,
+    scope: json.scope,
+    expiresAt: Date.now() + (json.expires_in ?? 86399) * 1000,
+  }
+  // 0600: token yalnizca bu kullanici tarafindan okunabilsin.
+  await writeFile(TOKEN_CACHE, JSON.stringify(cache, null, 2), { mode: 0o600 })
+  return cache
+}
+
+async function resolveToken(cfg) {
+  if (cfg.mode !== 'client_credentials') return
+  const cached = await readCachedToken(cfg)
+  const c = cached || await requestToken(cfg)
+  cfg.token = c.accessToken
+  cfg.scope = c.scope
+  if (!cached) {
+    const mins = Math.round((c.expiresAt - Date.now()) / 60000)
+    console.error(`not: yeni token alindi (scope: ${c.scope}; ${mins} dk gecerli).`)
   }
 }
 
@@ -128,13 +222,29 @@ async function gql(cfg, query, variables = {}, attempt = 0) {
         `  environment ayarlarindan ${cfg.store} ve cdn.shopify.com domainlerine izin verilmesi gerekir.`
       )
     }
+    // Onbellekteki token erken iptal edilmis olabilir (secret rotasyonu,
+    // app'in yeniden kurulmasi). Bir kez taze token alip tekrar dene.
+    if (cfg.mode === 'client_credentials' && !cfg.tokenRetried) {
+      cfg.tokenRetried = true
+      console.error('  token reddedildi, yenisi aliniyor...')
+      const c = await requestToken(cfg)
+      cfg.token = c.accessToken
+      cfg.scope = c.scope
+      return gql(cfg, query, variables, attempt)
+    }
+
     fail(
       `API ${res.status} dondu - token gecersiz veya gerekli scope yok (read_themes / write_themes).` +
+      (cfg.mode === 'client_credentials'
+        ? `\n  Taze token da reddedildi. App bu magazaya kurulu mu ve scope'lari` +
+          `\n  kaydedilmis mi kontrol et. Token'in scope'u: ${cfg.scope || '(bilinmiyor)'}`
+        : '') +
       (cfg.proxyAuth
-        ? '\n  SHOPIFY_PROXY_AUTH=1 aktif: proxy header\'i ekleyemedi olabilir.\n' +
+        ? '\n  Proxy modu aktif: proxy header\'i ekleyemedi olabilir.\n' +
           '  environment > API credentials altinda header adinin X-Shopify-Access-Token\n' +
           '  oldugunu, prefix alaninin bos oldugunu ve host listesinde bu magazanin\n' +
-          '  bulundugunu kontrol et.'
+          '  bulundugunu kontrol et.\n' +
+          '  Alternatif: .env icine SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET yaz.'
         : '')
     )
   }
@@ -229,7 +339,80 @@ const TEXT_EXT = new Set([
 ])
 
 const isText = f => TEXT_EXT.has(path.extname(f).toLowerCase())
+const isJson = f => path.extname(f).toLowerCase() === '.json'
 const md5 = buf => createHash('md5').update(buf).digest('hex')
+
+// Shopify, otomatik uretilen JSON dosyalarini (config/settings_data.json,
+// templates/*.json, locales/*.json) API'den dondururken iki sey yapar:
+//   1. Basina "contents of this file are auto-generated" uyari yorumu ekler.
+//   2. Icerigi yeniden bicimlendirir (depoda minified, donen halde girintili).
+// checksumMd5 ise DEPODAKI hale aittir. Yani bu dosyalarda
+// md5(donen govde) != checksumMd5 olur - dosya hic degismemis olsa bile.
+//
+// Yorumu ayiklamazsak yerele gecersiz JSON yazariz (JSON yorum kabul etmez).
+// Bicimlendirme farkini da yok saymak gerekir, yoksa `status` taze bir
+// pull'dan hemen sonra bile onlarca dosyayi "degismis" gosterir ve gercek
+// degisiklikler bu gurultunun icinde kaybolur.
+// Bazi dosyalarda banner'dan sonra satir sonu var, bazilarinda yok
+// (".../ */{" seklinde dogrudan icerik gelir) - bu yuzden sondaki bosluk
+// zorunlu degil.
+const JSON_BANNER = /^\uFEFF?\s*\/\*[\s\S]*?\*\/\s*/
+
+const stripJsonBanner = text => text.replace(JSON_BANNER, '')
+
+// Tema JSON'lari yorum icerebilir - ozellikle locales/*.schema.json icinde
+// "// Category for ..." satirlari vardir. JSON.parse bunlari kabul etmez.
+// Dize icindeki // ve /* dizilerine (orn. "https://...") dokunmamak icin
+// karakter karakter taranir. Sadece karsilastirma icin kullanilir; diske
+// yazdigimiz icerige dokunmaz.
+function stripJsonComments(text) {
+  let out = ''
+  let inStr = false
+  for (let i = 0; i < text.length;) {
+    const c = text[i]
+    if (inStr) {
+      if (c === '\\') { out += c + (text[i + 1] ?? ''); i += 2; continue }
+      if (c === '"') inStr = false
+      out += c; i++; continue
+    }
+    if (c === '"') { inStr = true; out += c; i++; continue }
+    if (c === '/' && text[i + 1] === '/') {
+      while (i < text.length && text[i] !== '\n') i++
+      continue
+    }
+    if (c === '/' && text[i + 1] === '*') {
+      i += 2
+      while (i < text.length && !(text[i] === '*' && text[i + 1] === '/')) i++
+      i += 2
+      continue
+    }
+    out += c; i++
+  }
+  return out
+}
+
+// Bicimlendirmeden bagimsiz karsilastirma icin JSON'i tek bir kanonik forma
+// indirger. Anahtar sirasi korunur - gercek bir yeniden siralamayi gizlememek
+// icin bilerek siralanmiyor. Ayristirilamiyorsa null doner ve cagiran taraf
+// dosyayi "degismis" sayar (temkinli taraf).
+function canonicalJson(text) {
+  try {
+    return JSON.stringify(JSON.parse(stripJsonComments(text)))
+  } catch {
+    return null
+  }
+}
+
+// Yerel dosya uzaktakiyle ayni mi? Once ucuz yol (md5), JSON'da gerekirse
+// kanonik karsilastirma.
+function remoteMatches(rel, buf, r) {
+  if (!r.checksumMd5) return true          // karsilastiracak sey yok
+  if (r.checksumMd5 === md5(buf)) return true
+  if (!isJson(rel)) return false
+  if (r.body?.__typename !== 'OnlineStoreThemeFileBodyText') return false
+  const a = canonicalJson(buf.toString('utf8'))
+  return a !== null && a === canonicalJson(r.body.content)
+}
 
 async function resolveTheme(cfg, ref) {
   const { themes } = await gql(cfg, Q_THEMES)
@@ -303,8 +486,10 @@ async function cmdPull(cfg, opts) {
 
     let buf
     switch (f.body.__typename) {
-      case 'OnlineStoreThemeFileBodyText':
-        buf = Buffer.from(f.body.content, 'utf8'); break
+      case 'OnlineStoreThemeFileBodyText': {
+        const text = isJson(f.filename) ? stripJsonBanner(f.body.content) : f.body.content
+        buf = Buffer.from(text, 'utf8'); break
+      }
       case 'OnlineStoreThemeFileBodyBase64':
         buf = Buffer.from(f.body.contentBase64, 'base64'); break
       case 'OnlineStoreThemeFileBodyUrl': {
@@ -332,7 +517,7 @@ async function cmdStatus(cfg, opts) {
     const buf = await readFile(path.join(opts.dir, rel))
     const r = remote.get(rel)
     if (!r) { added.push(rel); continue }
-    if (r.checksumMd5 && r.checksumMd5 !== md5(buf)) changed.push(rel)
+    if (!remoteMatches(rel, buf, r)) changed.push(rel)
   }
   const removed = [...remote.keys()].filter(f => !local.includes(f))
 
@@ -366,7 +551,7 @@ async function cmdPush(cfg, opts, only) {
     if (!(await stat(abs).catch(() => null))?.isFile()) { console.error(`  yok: ${rel}`); continue }
     const buf = await readFile(abs)
     const r = remote.get(rel)
-    if (!only.length && r?.checksumMd5 === md5(buf)) continue  // degismemis, atla
+    if (!only.length && r && remoteMatches(rel, buf, r)) continue  // degismemis, atla
     payload.push({
       filename: rel,
       body: isText(rel)
@@ -438,7 +623,11 @@ Shopify tema senkronizasyonu
   duplicate --theme <id|main> --name "X"    tema kopyasi olustur
 
 Ortam degiskenleri: SHOPIFY_STORE, SHOPIFY_API_VERSION
-  Kimlik: SHOPIFY_ADMIN_TOKEN (shpat_...) veya SHOPIFY_PROXY_AUTH=1
+  Kimlik (oncelik sirasiyla):
+    SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET  client_credentials grant,
+                                               24 saatlik token, kendini yeniler
+    SHOPIFY_ADMIN_TOKEN (shpat_...)            hazir token varsa
+    SHOPIFY_PROXY_AUTH=1                       header'i agent proxy ekler
 `
 
 async function main() {
@@ -448,6 +637,7 @@ async function main() {
 
   const { opts, rest } = parseArgs(argv)
   const cfg = config()
+  await resolveToken(cfg)
 
   switch (cmd) {
     case 'themes':    return cmdThemes(cfg)

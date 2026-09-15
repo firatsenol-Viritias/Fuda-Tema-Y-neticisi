@@ -5,44 +5,50 @@ tutmak ve Admin GraphQL API uzerinden senkronize etmek icin kullanilir.
 
 ## Kurulum
 
-Token Shopify Admin'den alinir: Settings > Apps and sales channels
-> Develop apps > [app] > API credentials > Admin API access token
-(`shpat_` ile baslar). Gerekli scope'lar: `read_themes`, `write_themes`.
+Kimlik dogrulama **client credentials grant** ile yapilir: app'in kendi kimlik
+bilgileri (client id + client secret) 24 saatlik bir Admin API access token'a
+cevrilir, merchant etkilesimi gerekmez. Script token'i kendi alir, diske
+onbellekler ve suresi dolunca yeniler.
 
-Token'i saklamanin iki yolu var.
+Shopify Admin panelinden olusturulan eski tip custom app'ler artik yeni kayit
+kabul etmiyor; kalici `shpat_` token uretilmiyor. Guncel yol budur.
 
-### Yol 1 (tercih edilen): environment API credentials
-
-Token cloud environment'in **API credentials** bolumunde durur. Agent proxy
-header'i istek VM'den ciktiktan sonra ekler; token session icinde hicbir yerde
-bulunmaz, ajan onu goremez.
-
-claude.ai/code > mesaj kutusunun ustundeki bulut ikonu > environment'in dislisi
-> **API credentials** > **Add credential**:
-
-    Name             : Shopify Admin API
-    Allowed websites : uy2rpe-ni.myshopify.com
-    Custom header    : X-Shopify-Access-Token   (prefix alanini BOS birak)
-    Value            : shpat_...
-
-Sonra:
+Kimlik bilgileri: Shopify Admin > Settings > Apps and sales channels
+> Develop apps > [app] > **API credentials**. Gerekli scope'lar:
+`read_themes`, `write_themes`.
 
 ```bash
 cp .env.example .env
-# .env icinde SHOPIFY_PROXY_AUTH=1 satirini ac, SHOPIFY_ADMIN_TOKEN'i sil
 ```
 
-Pro ve Max planlarinda mevcut; Team/Enterprise'da bu bolum gorunmez.
+`.env` icine:
 
-### Yol 2: .env dosyasi
-
-```bash
-cp .env.example .env
-# .env icine SHOPIFY_ADMIN_TOKEN degerini yaz
+```
+SHOPIFY_STORE=uy2rpe-ni.myshopify.com
+SHOPIFY_CLIENT_ID=<API key>
+SHOPIFY_CLIENT_SECRET=shpss_...
 ```
 
-`.env` gitignore'dadir, ama container icinde acik durur. Yol 1 mumkunse onu sec.
-Token'i hicbir zaman commit etme.
+`.env` ve token onbellegi (`.shopify-token.json`) gitignore'dadir. Ikisini de
+asla commit etme.
+
+### Kimlik dogrulama modlari
+
+Script su siraya gore secer:
+
+| Oncelik | Ortam degiskenleri | Davranis |
+|---|---|---|
+| 1 | `SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET` | client_credentials grant ile 24 saatlik token alir, onbellekler, kendini yeniler |
+| 2 | `SHOPIFY_ADMIN_TOKEN` (`shpat_...`) | elde hazir token varsa dogrudan kullanir |
+| 3 | `SHOPIFY_PROXY_AUTH=1` | header'i agent proxy ekler, token session icinde hic bulunmaz |
+
+Token 401 alirsa (secret rotasyonu, app'in yeniden kurulmasi) script bir kez
+taze token alip istegi tekrarlar.
+
+`shpss_` ile baslayan deger **API secret key**'dir; `X-Shopify-Access-Token`
+olarak dogrudan kullanilamaz - yalnizca `SHOPIFY_CLIENT_SECRET` olarak, client
+id ile birlikte anlamlidir. `shpat_` prefix'i olmayan bir degeri
+`SHOPIFY_ADMIN_TOKEN`'a yazarsan script bunu baslangicta yakalar.
 
 ## Kullanim
 
@@ -95,59 +101,73 @@ durumu Shopify kaynakli 403'ten ayirt edip acikca soyler.
 
 ## GraphQL sema dogrulamasi
 
-Script'teki alan adlari 15 Eylul 2026'da Admin GraphQL API dokumantasyonuna
-(shopify.dev, `latest`) karsi tek tek dogrulandi.
-
-Dogru cikanlar:
+Alan adlari once shopify.dev dokumantasyonuna, sonra **canli semaya** karsi
+dogrulandi (15 Eylul 2026, API 2026-07).
 
 | Kullanim | Durum |
 |---|---|
-| `themes(first:)` -> `nodes { id name role updatedAt }` | dogru |
-| `theme(id: ID!)` -> `files(first:, after:)` | dogru |
-| `OnlineStoreThemeFile`: `filename size checksumMd5 contentType body` | dogru |
-| `OnlineStoreThemeFileBodyText.content` | dogru |
-| `OnlineStoreThemeFileBodyBase64.contentBase64` | dogru |
-| `OnlineStoreThemeFileBodyUrl.url` | dogru |
-| `themeFilesUpsert(themeId:, files:)` -> `upsertedThemeFiles { filename }` | dogru |
-| `userErrors { field filename message }` (`OnlineStoreThemeFilesUserErrors`) | dogru |
-| `OnlineStoreThemeFilesUpsertFileInput`: `{ filename, body: { type, value } }` | dogru |
-| `themeDuplicate(id: ID!, name: String)` argumanlari | dogru |
+| `themes(first:)` -> `nodes { id name role updatedAt }` | canli sema ile dogrulandi |
+| `theme(id: ID!)` -> `files(first:, after:)` | canli sema ile dogrulandi |
+| `OnlineStoreThemeFile`: `filename size checksumMd5 contentType body` | canli sema ile dogrulandi |
+| `OnlineStoreThemeFileBodyText.content` | canli sema ile dogrulandi |
+| `OnlineStoreThemeFileBodyBase64.contentBase64` | dokumantasyondan |
+| `OnlineStoreThemeFileBodyUrl.url` | dokumantasyondan |
+| `themeFilesUpsert` -> `upsertedThemeFiles { filename }` | dokumantasyondan |
+| `userErrors { field filename message }` | dokumantasyondan |
+| `themeDuplicate(id:, name:)` -> `newTheme` | canli sema ile dogrulandi |
 
-Duzeltilen iki nokta:
+Duzeltilen uyusmazliklar:
 
-1. **`themeDuplicate` payload alani `theme` degil `newTheme`.** Eski haliyle
-   `duplicate` komutu her calistirmada GraphQL hatasi verirdi.
-2. **Varsayilan API surumu `2025-07` idi; 16 Temmuz 2026'da destek disi kaldi.**
-   Desteksiz surum isteginde Shopify hata vermez, sessizce varsayilan surume
-   "ileri duser" - yani hangi sema uzerinde calistigin belirsiz olur. Varsayilan
-   `2026-07` (son kararli surum) yapildi ve yanittaki `X-Shopify-Api-Version`
-   header'i istenen surumle karsilastirilip uyusmazlikta uyari basiliyor.
+1. **`themeDuplicate` payload alani `theme` degil `newTheme`.** Canli sema eski
+   haliyle `Field 'theme' doesn't exist on type 'ThemeDuplicatePayload'` doner.
+   `duplicate` komutu - is akisinin ilk adimi - hic calismazdi.
+2. **Varsayilan API surumu `2025-07` idi, 16 Temmuz 2026'da destek disi kaldi.**
+   Shopify desteksiz surumde hata vermez, sessizce baska bir surume duser
+   (olcumde 2025-10'a dustu). Varsayilan `2026-07` yapildi; yanittaki
+   `X-Shopify-Api-Version` istenen surumle karsilastirilip uyusmazlikta uyari
+   basiliyor.
 
-Canli semaya karsi calistirma (`node scripts/shopify-theme.mjs themes`) henuz
-yapilamadi; asagidaki kimlik dogrulama sorunu cozulunce ilk is o olmali.
+Not: `OnlineStoreThemeFile.size` alani `Int` degil `String` doner. Script bu
+alani kullanmiyor, ama uzerine kod yazacaksan dikkat.
 
-## Acik sorun: Admin API kimlik dogrulamasi
+## Otomatik uretilen JSON dosyalari
 
-Durum (15 Eylul 2026):
+Shopify, otomatik uretilen JSON dosyalarini (`config/settings_data.json`,
+`templates/*.json`, `locales/*.json`) API'den dondururken iki sey yapiyor:
 
-- Ag politikasi **calisiyor**. Istekler `uy2rpe-ni.myshopify.com` adresine
-  ulasiyor; yanitlar Shopify'dan geliyor (`x-request-id`, Cloudflare header'lari,
-  Shopify'a ozgu hata govdesi).
-- Kimlik dogrulama **calismiyor**. Her istek `401` ve
-  `[API] Invalid API key or access token` donuyor. Denenen tum API surumlerinde
-  (2025-07, 2026-01, 2026-07, unstable) ayni sonuc - yani sorun surum degil.
-- Session icinde `SHOPIFY_ADMIN_TOKEN` ya da baska bir Shopify ortam degiskeni
-  **yok**; agent proxy de `X-Shopify-Access-Token` header'ini eklemiyor gorunuyor.
+1. Basina "contents of this file are auto-generated" uyari yorumu ekliyor.
+2. Icerigi yeniden bicimlendiriyor - depoda minified, donen halde girintili.
+   (`templates/product.json`: depoda 17182 bayt, donen govde 32499 bayt.)
 
-Kontrol edilecekler (environment ayarlarinda, claude.ai/code > bulut ikonu >
-dislice > **API credentials**):
+`checksumMd5` ise **depodaki** hale ait. Yani bu dosyalarda
+`md5(donen govde) != checksumMd5` olur, dosya hic degismemis olsa bile.
 
-1. Credential gercekten kaydedildi mi?
-2. `Custom header` adi tam olarak `X-Shopify-Access-Token` mi? (prefix alani BOS)
-3. `Allowed websites` icinde `uy2rpe-ni.myshopify.com` var mi?
-4. Token hala gecerli mi - Admin > Apps > Develop apps > [app] > API credentials.
-   Token iptal edilmis veya baska bir magazaya ait olabilir.
-5. App'e `read_themes` ve `write_themes` scope'lari verilip **kaydedildi** mi?
+Bu duzeltilmeden once: taze bir `pull`'dan hemen sonra `status` 430 dosyanin
+59'unu "degismis" gosteriyordu ve yerele yazilan JSON dosyalari - basindaki
+yorum yuzunden - gecersizdi.
 
-Ayar degisikligi container ayaga kalkarken uygulanir: kaydettikten sonra **yeni
-bir session** acmak gerekir.
+Script simdi:
+
+- `pull` sirasinda yalnizca bu otomatik banner'i ayikliyor (bazi dosyalarda
+  banner'dan sonra satir sonu yok, `*/{` seklinde dogrudan icerik geliyor).
+- Karsilastirmada once md5'e bakiyor; JSON'da tutmazsa iki tarafi da kanonik
+  forma indirip karsilastiriyor. Anahtar sirasi korunuyor, boylece gercek bir
+  yeniden siralama gizlenmiyor.
+- Karsilastirma icin JSON yorumlarini tolere ediyor (`locales/*.schema.json`
+  mesru `//` yorumlari iceriyor). Dize icindeki `//` dizilerine dokunulmuyor.
+
+Olculen sonuc: taze pull sonrasi `status` -> **fark yok**, 72 JSON dosyasinin
+tamami gecerli. Sadece bicimlendirmesi degistirilen dosya "degismis"
+gorunmuyor, icerigi degistirilen dosya goruluyor.
+
+## Dogrulama durumu
+
+15 Eylul 2026 itibariyla canli magazaya karsi calistirildi:
+
+- `themes` - 18 tema listelendi
+- `pull` - 430 dosya indi (sayfalama dahil), 0 atlandi
+- `status` - taze pull sonrasi fark yok; gercek degisiklikler goruluyor
+- `push --dry-run` - gonderilecek bir sey yok; MAIN korumasi calisiyor
+- `duplicate` - alan adi canli semaya karsi dogrulandi (gecersiz ID ile,
+  magazada tema olusturmadan). Gercek bir kopya alma islemi henuz
+  calistirilmadi.
