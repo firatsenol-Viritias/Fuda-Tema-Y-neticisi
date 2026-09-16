@@ -81,6 +81,52 @@
   %}
 </div>
 
+{%- comment -%}
+  Saat basi banner dondurme.
+
+  Slaytlari ilk boyamadan ONCE DOM'da donduruyoruz; boylece secilen slayt
+  zaten 0. sirada oluyor. Alternatif olan initial-slide ozniteligi ise
+  bileseni once 0. slayti gosterip sonra atlamaya zorluyor (slideshow.js
+  bunu requestAnimationFrame icinde yapiyor) ve hero'da goz kirpma olusuyor.
+
+  Bu script satir ici ve klasik; slideshow.js ise type="module", yani
+  ertelenmis. Dolayisiyla bilesen yukseltilmeden once calisir.
+{%- endcomment -%}
+
+{%- if section.settings.hourly_rotation and section.blocks.size > 1 -%}
+  <script>
+    (() => {
+      // Tema editorunde slayt sirasi degismesin, duzenleme kafa karistirmasin.
+      if (window.Shopify && window.Shopify.designMode) return;
+
+      const root = document.getElementById('shopify-section-{{ section.id }}');
+      const component = root && root.querySelector('slideshow-component');
+      const track = component && component.querySelector('slideshow-slides');
+      if (!track) return;
+
+      const slides = Array.from(track.children).filter((el) => el.tagName === 'SLIDESHOW-SLIDE');
+      if (slides.length < 2) return;
+
+      // Epoch saati: her ziyaretci ayni saatte ayni banner'i gorur ve
+      // gun uzunlugu slayt sayisina bolunmedigi icin gun donumunde
+      // atlama olmaz. Sinirlar tam saat basinda (UTC+3'te de tam saat).
+      const start = Math.floor(Date.now() / 3600000) % slides.length;
+      if (start === 0) return;
+
+      const rotated = slides.slice(start).concat(slides.slice(0, start));
+      for (const slide of rotated) track.appendChild(slide);
+
+      // Indekse bagli olan her sey yeni siraya gore yeniden yazilir:
+      // kaydirma zaman cizelgesi, erisilebilirlik bayragi ve tiklama hedefi.
+      rotated.forEach((slide, index) => {
+        slide.style.setProperty('--slideshow-timeline', `--slide-${index}`);
+        slide.setAttribute('aria-hidden', index === 0 ? 'false' : 'true');
+        if (slide.hasAttribute('on:click')) slide.setAttribute('on:click', `/select/${index}`);
+      });
+    })();
+  </script>
+{%- endif -%}
+
 {% stylesheet %}
   .slideshow-section {
     slideshow-arrows .slideshow-control:first-of-type {
@@ -179,7 +225,10 @@
     }
   ],
   "disabled_on": {
-    "groups": ["header", "footer"]
+    "groups": [
+      "header",
+      "footer"
+    ]
   },
   "settings": [
     {
@@ -365,6 +414,13 @@
     },
     {
       "type": "checkbox",
+      "id": "hourly_rotation",
+      "label": "Saat başı farklı slaytla başlat",
+      "info": "Her saat başında sıradaki slayt ilk sıraya geçer. Slayt sırası korunur.",
+      "default": false
+    },
+    {
+      "type": "checkbox",
       "id": "autoplay",
       "label": "t:settings.auto_rotate_slides",
       "default": false,
@@ -445,7 +501,11 @@
               }
             }
           },
-          "block_order": ["heading", "text", "button"]
+          "block_order": [
+            "heading",
+            "text",
+            "button"
+          ]
         },
         "slide_2": {
           "type": "_slide",
@@ -481,10 +541,17 @@
               }
             }
           },
-          "block_order": ["heading", "text", "button"]
+          "block_order": [
+            "heading",
+            "text",
+            "button"
+          ]
         }
       },
-      "block_order": ["slide_1", "slide_2"]
+      "block_order": [
+        "slide_1",
+        "slide_2"
+      ]
     },
     {
       "name": "t:names.slideshow_inset",
@@ -523,7 +590,11 @@
               }
             }
           },
-          "block_order": ["heading", "text", "button"]
+          "block_order": [
+            "heading",
+            "text",
+            "button"
+          ]
         },
         "slide_2": {
           "type": "_slide",
@@ -558,10 +629,17 @@
               }
             }
           },
-          "block_order": ["heading", "text", "button"]
+          "block_order": [
+            "heading",
+            "text",
+            "button"
+          ]
         }
       },
-      "block_order": ["slide_1", "slide_2"],
+      "block_order": [
+        "slide_1",
+        "slide_2"
+      ],
       "settings": {
         "display_mode": "with_hints",
         "slideshow_gap": 18,

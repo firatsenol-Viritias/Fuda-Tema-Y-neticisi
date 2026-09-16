@@ -504,7 +504,8 @@
         "autoplay": true,
         "autoplay_speed": 4,
         "padding-block-start": 0,
-        "padding-block-end": 0
+        "padding-block-end": 0,
+        "hourly_rotation": true
       }
     },
     "product_list_4jqyPz": {
