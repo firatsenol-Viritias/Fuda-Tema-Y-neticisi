@@ -67,7 +67,14 @@ class FudaCampaignPopup extends HTMLElement {
   /**
    * Hangi kampanyanin popup'i acilmali?
    * Tek sayi = bir urun daha eklenirse bedava cift tamamlanir.
-   * Birden fazla aday varsa en son eklenen urunun kampanyasi oncelikli.
+   *
+   * Eklenen urun biliniyorsa yalnizca o urunun kampanyasi acilir. Boylece
+   * sepetinde tek hasir olan biri kampanya disi bir urun eklediginde popup
+   * onune cikmaz; ayrica eski ColorPuff hediye popup'i ile ayni anda
+   * acilma durumu ortadan kalkar.
+   *
+   * Urun ID'si bilinmiyorsa (orn. sepet cekmecesinde adet artirma) tek
+   * sayidaki ilk kampanyaya dusulur.
    */
   pickCampaign(cart, addedProductId) {
     const candidates = this.campaigns
@@ -76,8 +83,7 @@ class FudaCampaignPopup extends HTMLElement {
 
     if (!candidates.length) return null;
     if (addedProductId) {
-      const matched = candidates.find(({ campaign }) => campaign.productIds.has(Number(addedProductId)));
-      if (matched) return matched;
+      return candidates.find(({ campaign }) => campaign.productIds.has(Number(addedProductId))) || null;
     }
     return candidates[0];
   }
@@ -284,6 +290,9 @@ class FudaCampaignPopup extends HTMLElement {
 
     const cartDrawer = document.querySelector('cart-drawer-component');
     if (cartDrawer && typeof cartDrawer.close === 'function') cartDrawer.close();
+    // Eski ColorPuff hediye popup'i aciksa kampanya popup'i onceliklidir.
+    const legacyPopup = document.querySelector('fuda-second-product-popup');
+    if (legacyPopup && typeof legacyPopup.close === 'function') legacyPopup.close();
     this.previouslyFocused = document.activeElement;
     this.hidden = false;
     document.body.classList.add('fuda-upsell-open');
