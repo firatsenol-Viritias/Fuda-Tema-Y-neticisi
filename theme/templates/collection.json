@@ -71,11 +71,9 @@
         "collections": [
           "avantajli-urunler",
           "colorfull",
-          "puff-go",
           "fuda-monnk",
           "el-cantasi",
           "hakiki-deri",
-          "hasir-cantalar",
           "milaro",
           "mi̇ni̇-cantalar",
           "omuz-cantasi",
@@ -155,11 +153,42 @@
         "padding-block-start": 10,
         "padding-block-end": 24
       }
+    },
+    "weekly_collection_countdown_bogo": {
+      "type": "weekly-collection-countdown",
+      "name": "Bir alana bir bedava sayaci",
+      "settings": {
+        "enabled": true,
+        "collections": [
+          "puff-go",
+          "hasir-cantalar"
+        ],
+        "eyebrow": "",
+        "badge_text": "BİR ALANA BİR BEDAVA",
+        "text": "<p>Bu koleksiyondan 2 ürün seçin, ikincisi sepette ücretsiz.</p>",
+        "end_label": "BUGÜN BİTİYOR",
+        "hours_label": "SAAT",
+        "minutes_label": "DAKİKA",
+        "seconds_label": "SANİYE",
+        "background_color": "#f4faf4",
+        "border_color": "#2f8b3a",
+        "accent_color": "#2f8b3a",
+        "text_color": "#111111",
+        "timer_background": "#090909",
+        "timer_text_color": "#ffffff",
+        "max_width": 1200,
+        "corner_radius": 18,
+        "padding_y": 48,
+        "padding_x": 32,
+        "margin_top": 20,
+        "margin_bottom": 20
+      }
     }
   },
   "order": [
     "section",
     "weekly_collection_countdown_zNhkgE",
+    "weekly_collection_countdown_bogo",
     "main-collection"
   ]
 }
