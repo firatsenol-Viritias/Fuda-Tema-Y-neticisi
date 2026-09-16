@@ -62,6 +62,17 @@
     assign show_colorpuff_gift_badge = false
   endif
 
+  # Kampanya rozeti (bir alana bir bedava). Ciktisi bos degilse urun
+  # kampanyadadir; o zaman eski ColorPuff hediye rozeti gosterilmez.
+  capture campaign_badge_markup
+    render 'fuda-campaign-badge', product: product, collection: collection
+  endcapture
+  assign campaign_badge_markup = campaign_badge_markup | strip
+
+  if campaign_badge_markup != blank
+    assign show_colorpuff_gift_badge = false
+  endif
+
   assign colorpuff_badge_collection = blank
   assign colorpuff_badge_filter = ''
   assign colorpuff_badge_image = blank
@@ -156,6 +167,7 @@
 
   <div class="product-card__content layout-panel-flex layout-panel-flex--column product-grid__card spacing-style border-style gap-style fuda-variant-card__content">
     <div class="fuda-variant-card__media-wrap">
+      {{ campaign_badge_markup }}
       {% if show_colorpuff_gift_badge %}
         <div class="fuda-oxford-badge" aria-hidden="true">
           <div class="fuda-oxford-badge__image-wrap">

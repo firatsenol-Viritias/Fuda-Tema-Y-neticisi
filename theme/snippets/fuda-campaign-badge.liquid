@@ -1,0 +1,80 @@
+{%- doc -%}
+  "Bir alana bir bedava" kampanya rozeti.
+
+  Urun kampanya koleksiyonlarindan birine aitse rozeti basar, degilse hicbir
+  sey basmaz. Cagiran kart, ciktiyi capture edip bos olup olmadigina bakarak
+  eski ColorPuff hediye rozetini gosterip gostermeyecegine karar verir.
+
+  Kampanya koleksiyonlari ve rozet metni YALNIZCA burada tanimlidir;
+  degistirmek icin baska dosyaya dokunmaya gerek yok.
+
+  @param {object} product - Urun objesi
+  @param {object} [collection] - Icinde bulunulan koleksiyon (varsa)
+{%- enddoc -%}
+
+{% liquid
+  assign campaign_badge_text = 'İKİNCİSİ BEDAVA'
+  assign campaign_handles = 'hasir-cantalar,puff-go' | split: ','
+
+  assign is_campaign_product = false
+  if collection != blank and campaign_handles contains collection.handle
+    assign is_campaign_product = true
+  elsif product != blank
+    for product_collection in product.collections
+      if campaign_handles contains product_collection.handle
+        assign is_campaign_product = true
+        break
+      endif
+    endfor
+  endif
+%}
+
+{%- if is_campaign_product -%}
+  <div class="fuda-campaign-card-badge">
+    <span class="fuda-campaign-card-badge__text">{{ campaign_badge_text }}</span>
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  /* Hediye rozetinin aksine urun gorseli tasimaz: 1+1'de gosterilecek ayri
+     bir urun yok, musteri zaten baktigi urunden bir tane daha aliyor. Bu
+     yuzden daha kucuk ve urun fotografini daha az kapatiyor. */
+  .fuda-campaign-card-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 25;
+    display: flex;
+    max-width: calc(100% - 24px);
+    pointer-events: none;
+  }
+
+  .fuda-campaign-card-badge__text {
+    padding: 7px 13px;
+    border-radius: 999px;
+    background: #2f8b3a;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-align: center;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  }
+
+  @media screen and (max-width: 749px) {
+    .fuda-campaign-card-badge {
+      top: 8px;
+      right: 8px;
+      max-width: calc(100% - 16px);
+    }
+
+    .fuda-campaign-card-badge__text {
+      padding: 6px 10px;
+      font-size: 10px;
+      letter-spacing: 0.04em;
+    }
+  }
+{% endstylesheet %}

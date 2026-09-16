@@ -35,17 +35,12 @@
   assign product_card_gap_value = product_card_gap | default: block_settings.product_card_gap
 
   # Kart rozetleri.
-  # "Bir alana bir bedava" koleksiyonlarinda kampanya rozeti gosterilir;
-  # diger koleksiyonlarda hala donen ColorPuff hediye rozeti kalir.
+  # Kampanya rozeti (bir alana bir bedava) icin fuda-campaign-badge snippet'i
+  # sorumludur; kampanya koleksiyonlari ve metin orada tanimli. Ciktisi bos
+  # degilse urun kampanyadadir ve eski ColorPuff hediye rozeti gosterilmez.
   # Plaj cantalarinda hicbir rozet gosterilmez.
-  # Rozet metni burada, tek yerde tanimli.
-  assign campaign_badge_text = 'İKİNCİSİ BEDAVA'
-  assign campaign_handles = 'hasir-cantalar,puff-go' | split: ','
-
   assign show_colorpuff_gift_badge = false
-  assign show_campaign_badge = false
   assign is_beach_bag_product = false
-  assign is_campaign_product = false
   if product != blank and product.id != empty
     if collection != blank and collection.handle == 'plaj-cantalari'
       assign is_beach_bag_product = true
@@ -60,24 +55,18 @@
       endfor
     endif
 
-    if collection != blank and campaign_handles contains collection.handle
-      assign is_campaign_product = true
-    else
-      for product_collection in product.collections
-        if campaign_handles contains product_collection.handle
-          assign is_campaign_product = true
-          break
-        endif
-      endfor
-    endif
-
     unless is_beach_bag_product
-      if is_campaign_product
-        assign show_campaign_badge = true
-      else
-        assign show_colorpuff_gift_badge = true
-      endif
+      assign show_colorpuff_gift_badge = true
     endunless
+  endif
+
+  capture campaign_badge_markup
+    render 'fuda-campaign-badge', product: product, collection: collection
+  endcapture
+  assign campaign_badge_markup = campaign_badge_markup | strip
+
+  if campaign_badge_markup != blank
+    assign show_colorpuff_gift_badge = false
   endif
 
   # Logic to determine which variant URL to use (matching swatch selection logic)
@@ -152,11 +141,7 @@
       {% if block_settings.padding-block-end > 0 %}--zoom-out-padding-block-end: min(var(--padding-xs), {{ block_settings.padding-block-end | times: 0.7}}px);{% endif %}
     "
   >
-    {% if show_campaign_badge %}
-      <div class="fuda-campaign-card-badge">
-        <span class="fuda-campaign-card-badge__text">{{ campaign_badge_text }}</span>
-      </div>
-    {% endif %}
+    {{ campaign_badge_markup }}
     {% if show_colorpuff_gift_badge %}
       <fuda-oxford-colorpuff-badge
         class="fuda-oxford-card-badge"
@@ -192,35 +177,6 @@
 
   .product-card__content slideshow-component {
     --cursor: pointer;
-  }
-
-  /* "Bir alana bir bedava" kampanya rozeti.
-     Hediye rozetinin aksine urun gorseli tasimaz: 1+1'de gosterilecek
-     ayri bir urun yok, musteri zaten baktigi urunden bir tane daha aliyor.
-     Bu yuzden daha kucuk ve urun fotografini daha az kapatiyor. */
-  .fuda-campaign-card-badge {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    z-index: 25;
-    display: flex;
-    max-width: calc(100% - 24px);
-    pointer-events: none;
-  }
-
-  .fuda-campaign-card-badge__text {
-    padding: 7px 13px;
-    border-radius: 999px;
-    background: #2f8b3a;
-    color: #fff;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1.1;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    text-align: center;
-    white-space: nowrap;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
   }
 
   .fuda-oxford-card-badge {
@@ -288,18 +244,6 @@
   @media screen and (max-width: 749px) {
     .product-card slideshow-arrows .slideshow-control {
       display: none;
-    }
-
-    .fuda-campaign-card-badge {
-      top: 10px;
-      right: 10px;
-      max-width: calc(100% - 20px);
-    }
-
-    .fuda-campaign-card-badge__text {
-      padding: 6px 10px;
-      font-size: 10px;
-      letter-spacing: 0.04em;
     }
 
     .fuda-oxford-card-badge {
