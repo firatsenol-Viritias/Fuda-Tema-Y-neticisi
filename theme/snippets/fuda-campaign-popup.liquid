@@ -1,0 +1,97 @@
+{% comment %}
+  "Bir alana bir bedava" kampanya popup'i.
+
+  Kampanya koleksiyonlarindan bir urun sepete eklendiginde acilir ve ayni
+  koleksiyondan ikinci urunu secmeyi onerir. Tetikleyici sepet olayidir;
+  bu yuzden urun sayfasi, koleksiyon sayfasindaki hizli ekleme ve sepet
+  cekmecesi dahil her ekleme yolunda calisir.
+
+  Sunucu tarafinda yalnizca urun ID listesi basilir (kucuk). Urun kartlari
+  popup acildiginda products.json ile yuklenir; boylece her sayfaya yuzlerce
+  varyant markup'i gomulmez.
+
+  ONEMLI: Bu popup indirim uygulamaz. Bedava urun, Shopify Admin'de tanimli
+  "Buy X Get Y" otomatik indirimi ile sepette dusulur. Indirim tanimli
+  degilse musteri her iki urunun de parasini oder.
+
+  Not: collections[handle].products Liquid'de en fazla 50 urun dondurur.
+  Kampanya koleksiyonu 50 urunu gecerse ID listesi eksik kalir.
+{% endcomment %}
+
+{% liquid
+  assign campaign_handles = 'hasir-cantalar,puff-go' | split: ','
+  assign campaign_count = 0
+%}
+
+{% capture campaign_config %}[
+{%- for campaign_handle in campaign_handles -%}
+  {%- assign campaign_collection = collections[campaign_handle] -%}
+  {%- if campaign_collection != blank and campaign_collection.all_products_count > 0 -%}
+    {%- if campaign_count > 0 -%},{%- endif -%}
+    {
+      "handle": {{ campaign_collection.handle | json }},
+      {%- if campaign_handle == 'hasir-cantalar' -%}
+        "eyebrow": {{ 'HASIR KOLEKSİYONU' | json }},
+        "heading": {{ 'Bir Alana Bir Bedava' | json }},
+        "description": {{ 'İkinci hasır çantanı seç. İndirim sepette otomatik uygulanır.' | json }},
+        "offerLabel": {{ '2. ÜRÜN BEDAVA' | json }},
+        "footer": {{ 'Kampanya bugün gece yarısı sona eriyor.' | json }},
+      {%- else -%}
+        "eyebrow": {{ 'COLORPUFF KOLEKSİYONU' | json }},
+        "heading": {{ 'Bir Alana Bir Bedava' | json }},
+        "description": {{ 'İkinci ColorPuff’ını seç. İndirim sepette otomatik uygulanır.' | json }},
+        "offerLabel": {{ '2. ÜRÜN BEDAVA' | json }},
+        "footer": {{ 'Kampanya bugün gece yarısı sona eriyor.' | json }},
+      {%- endif -%}
+      "productIds": [
+        {%- assign id_separator = '' -%}
+        {%- for campaign_product in campaign_collection.products limit: 50 -%}
+          {{- id_separator }}{{ campaign_product.id }}
+          {%- assign id_separator = ',' -%}
+        {%- endfor -%}
+      ]
+    }
+    {%- assign campaign_count = campaign_count | plus: 1 -%}
+  {%- endif -%}
+{%- endfor -%}
+]{% endcapture %}
+
+{% if campaign_count > 0 %}
+  <link rel="stylesheet" href="{{ 'fuda-second-product-popup.css' | asset_url }}">
+
+  <fuda-campaign-popup
+    class="fuda-upsell"
+    hidden
+    data-initial-item-count="{{ cart.item_count }}"
+  >
+    {%- comment -%} `</script` kacisi: urun/koleksiyon metni script etiketini kapatamasin. {%- endcomment -%}
+    <script type="application/json" data-fuda-campaigns>{{ campaign_config | replace: '</script', '<\/script' }}</script>
+
+    <div class="fuda-upsell__backdrop" data-fuda-upsell-close></div>
+    <section class="fuda-upsell__panel" role="dialog" aria-modal="true" aria-labelledby="FudaCampaignTitle" tabindex="-1">
+      <header class="fuda-upsell__header">
+        <div>
+          <p class="fuda-upsell__eyebrow" data-fuda-eyebrow></p>
+          <h2 id="FudaCampaignTitle" data-fuda-heading></h2>
+          <p data-fuda-description></p>
+        </div>
+        <button class="fuda-upsell__close" type="button" aria-label="Kapat" data-fuda-upsell-close>{{- 'icon-close.svg' | inline_asset_content -}}</button>
+      </header>
+
+      <div class="fuda-upsell__body">
+        <div class="fuda-upsell__collection" role="tabpanel">
+          <div class="fuda-upsell__products" data-fuda-products>
+            <p class="fuda-upsell__empty">Ürünler yükleniyor...</p>
+          </div>
+        </div>
+      </div>
+
+      <footer class="fuda-upsell__footer">
+        <span data-fuda-footer></span>
+        <button type="button" class="fuda-upsell__continue" data-fuda-upsell-close>Alışverişe devam et</button>
+      </footer>
+    </section>
+  </fuda-campaign-popup>
+
+  <script type="module" src="{{ 'fuda-campaign-popup.js' | asset_url }}"></script>
+{% endif %}

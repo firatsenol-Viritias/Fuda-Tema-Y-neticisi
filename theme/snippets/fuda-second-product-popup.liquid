@@ -7,6 +7,8 @@
   assign show_colorpuff_gift_popup = false
   assign is_beach_bag_product = false
   assign is_colorpuff_product = false
+  assign is_campaign_product = false
+  assign campaign_handles = 'hasir-cantalar,puff-go' | split: ','
 
   if request.page_type == 'product' and product != blank
     assign product_title_downcase = product.title | downcase
@@ -22,9 +24,14 @@
       if product_collection.handle == 'colorpuff' or product_collection.handle == 'color-puff'
         assign is_colorpuff_product = true
       endif
+      # "Bir alana bir bedava" kampanyasindaki koleksiyonlarda fuda-campaign-popup
+      # devreye giriyor; ikisi ayni anda acilmasin.
+      if campaign_handles contains product_collection.handle
+        assign is_campaign_product = true
+      endif
     endfor
 
-    unless is_beach_bag_product or is_colorpuff_product
+    unless is_beach_bag_product or is_colorpuff_product or is_campaign_product
       assign show_colorpuff_gift_popup = true
     endunless
   endif
