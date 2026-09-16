@@ -5,8 +5,26 @@
 {% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
 
 {% style %}
+  /* Sayfanin yatay kaymasini onler.
+
+     Shopify'in bu blok icin urettigi sarmalayici (#shopify-block-...) bir
+     flex item ve varsayilan min-width:auto degerini tasiyor. Flex item,
+     icerigin min-content genisliginin altina inmeyi reddeder; icerideki
+     kayan serit ise width:max-content oldugu icin ~6000px. Sonucta
+     sarmalayici viewport'u asiyor ve tum sayfa yatay kayiyordu
+     (olcum: viewport 1440px, scrollWidth 5932px).
+
+     min-width:0 flex item'in kucumesine izin verir; serit zaten
+     .ai-ticker-* uzerindeki overflow:hidden ile kirpiliyor. */
+  #shopify-block-{{ block.id }} {
+    min-width: 0;
+    max-width: 100%;
+  }
+
   .ai-ticker-{{ ai_gen_id }} {
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
     overflow: hidden;
     background-color: {{ block.settings.background_color }};
     padding: {{ block.settings.vertical_padding }}px 0;
