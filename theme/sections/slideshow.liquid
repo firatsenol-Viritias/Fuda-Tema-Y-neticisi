@@ -110,10 +110,31 @@
       // Epoch saati: her ziyaretci ayni saatte ayni banner'i gorur ve
       // gun uzunlugu slayt sayisina bolunmedigi icin gun donumunde
       // atlama olmaz. Sinirlar tam saat basinda (UTC+3'te de tam saat).
-      const start = Math.floor(Date.now() / 3600000) % slides.length;
-      if (start === 0) return;
+      const hour = Math.floor(Date.now() / 3600000);
 
-      const rotated = slides.slice(start).concat(slides.slice(0, start));
+      // Ozel sira verilmisse (orn. "1,3,2") yalnizca o slaytlar basa gecer.
+      // Gecersiz veya kapsam disi numaralar atilir; hicbiri gecerli degilse
+      // varsayilan davranisa dusulur.
+      const raw = {{ section.settings.rotation_order | default: '' | json }};
+      const order = String(raw)
+        .split(',')
+        .map((n) => parseInt(n.trim(), 10))
+        .filter((n) => Number.isInteger(n) && n >= 1 && n <= slides.length)
+        .map((n) => n - 1);
+
+      let rotated;
+      if (order.length > 0) {
+        // Secilen slayt basa alinir, digerlerinin kendi arasindaki sira korunur.
+        const first = order[((hour % order.length) + order.length) % order.length];
+        if (first === 0) return;
+        rotated = [slides[first], ...slides.filter((_, i) => i !== first)];
+      } else {
+        // Sira verilmemisse tum slaytlar saat basi bir kayar.
+        const start = ((hour % slides.length) + slides.length) % slides.length;
+        if (start === 0) return;
+        rotated = slides.slice(start).concat(slides.slice(0, start));
+      }
+
       for (const slide of rotated) track.appendChild(slide);
 
       // Indekse bagli olan her sey yeni siraya gore yeniden yazilir:
@@ -418,6 +439,13 @@
       "label": "Saat başı farklı slaytla başlat",
       "info": "Her saat başında sıradaki slayt ilk sıraya geçer. Slayt sırası korunur.",
       "default": false
+    },
+    {
+      "type": "text",
+      "id": "rotation_order",
+      "label": "Döndürme sırası (slayt numaraları)",
+      "info": "Örn. 1,3,2 — yalnızca bu slaytlar saat başı sırayla ilk sıraya geçer. Boş bırakılırsa tüm slaytlar sırayla döner.",
+      "default": ""
     },
     {
       "type": "checkbox",
