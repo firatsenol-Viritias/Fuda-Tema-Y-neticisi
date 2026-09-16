@@ -635,14 +635,14 @@
       },
       "block_order": [
         "slide_hasir1",
-        "slide_hasir2",
-        "slide_hasir3",
         "slide_AayrC6",
         "slide_67FW4m",
         "slide_BJPM4L",
+        "slide_hasir3",
         "slide_idNdMr",
         "slide_KXhcep",
         "slide_tgTyKf",
+        "slide_hasir2",
         "slide_GW9RcX",
         "slide_yqFhk6",
         "slide_bCtGFp"
@@ -665,7 +665,7 @@
         "padding-block-start": 0,
         "padding-block-end": 0,
         "hourly_rotation": true,
-        "rotation_order": "1,3,2"
+        "rotation_order": "1,5,9"
       }
     },
     "product_list_4jqyPz": {

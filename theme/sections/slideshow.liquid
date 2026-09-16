@@ -124,10 +124,18 @@
 
       let rotated;
       if (order.length > 0) {
-        // Secilen slayt basa alinir, digerlerinin kendi arasindaki sira korunur.
-        const first = order[((hour % order.length) + order.length) % order.length];
-        if (first === 0) return;
-        rotated = [slides[first], ...slides.filter((_, i) => i !== first)];
+        // Kampanya slaytlari kendi sabit konumlarinda kalir; yalnizca hangi
+        // slaydin hangi konuma dustugu saat basi kayar. Boylece kampanya
+        // banner'lari birbirinin yanina dusmez, aralarindaki diger slaytlar
+        // korunur. Listedeki ilk konum her saat farkli bir banner gosterir.
+        const slots = [...new Set(order)].sort((a, b) => a - b);
+        const lead = ((hour % order.length) + order.length) % order.length;
+        rotated = slides.slice();
+        slots.forEach((slot, k) => {
+          rotated[slot] = slides[order[(lead + k) % order.length]];
+        });
+        // Dizilim degismediyse DOM'a dokunma.
+        if (rotated.every((el, i) => el === slides[i])) return;
       } else {
         // Sira verilmemisse tum slaytlar saat basi bir kayar.
         const start = ((hour % slides.length) + slides.length) % slides.length;
@@ -444,7 +452,7 @@
       "type": "text",
       "id": "rotation_order",
       "label": "Döndürme sırası (slayt numaraları)",
-      "info": "Örn. 1,3,2 — yalnızca bu slaytlar saat başı sırayla ilk sıraya geçer. Boş bırakılırsa tüm slaytlar sırayla döner."
+      "info": "Örn. 1,5,9 — bu slaytlar kendi konumlarında kalır, saat başı aralarında yer değiştirir. Listedeki ilk konum her saat farklı bir slayt gösterir. Boş bırakılırsa tüm slaytlar sırayla kayar."
     },
     {
       "type": "checkbox",
