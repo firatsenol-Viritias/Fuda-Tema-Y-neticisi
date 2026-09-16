@@ -665,7 +665,8 @@
         "padding-block-start": 0,
         "padding-block-end": 0,
         "hourly_rotation": true,
-        "rotation_order": "1,5,9"
+        "rotation_order": "1,5,9",
+        "disable_slide_fade": true
       }
     },
     "product_list_4jqyPz": {

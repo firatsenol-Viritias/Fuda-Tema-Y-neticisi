@@ -63,7 +63,7 @@
 
 <div class="section-background color-{{ section.settings.color_scheme }}"></div>
 <div
-  class="slideshow-section spacing-style section {{ section_width_class }} color-{{ section.settings.color_scheme }} disable-section-top-offset"
+  class="slideshow-section spacing-style section {{ section_width_class }} color-{{ section.settings.color_scheme }} disable-section-top-offset{% if section.settings.disable_slide_fade %} slideshow-section--no-fade{% endif %}"
   style="{% render 'spacing-padding', settings: section.settings %}; --slideshow-gap: {{ section.settings.slideshow_gap }}px;{% if rounded_slide_corners %} --corner-radius: {{ section.settings.corner_radius }}px;{% endif %}"
 >
   <h2 class="visually-hidden">{{ 'accessibility.slideshow' | t }}</h2>
@@ -157,6 +157,21 @@
 {%- endif -%}
 
 {% stylesheet %}
+  /* Slayt gecisinde soldurma efektini kapatir.
+
+     Tema varsayilaninda .slide__content opacity:0 ile baslar ve kaydirmaya
+     bagli slide-reveal animasyonuyla acilir. Gecis ortasinda slayt yari
+     saydam kaldigi icin arkasindaki bolum arka plani ve komsu slayt
+     gorunur. Metin-uzeri-fotograf slaytlarinda efekt gibi duruyor, tam
+     ekran banner'larda hata gibi duruyor.
+
+     Ozgulluk .slide__content (0,1,0) uzerinde oldugu icin sira farketmeksizin
+     kazanir. */
+  .slideshow-section--no-fade .slide__content {
+    opacity: 1;
+    animation: none;
+  }
+
   .slideshow-section {
     slideshow-arrows .slideshow-control:first-of-type {
       margin-inline-start: var(--padding-xs);
@@ -453,6 +468,13 @@
       "id": "rotation_order",
       "label": "Döndürme sırası (slayt numaraları)",
       "info": "Örn. 1,5,9 — bu slaytlar kendi konumlarında kalır, saat başı aralarında yer değiştirir. Listedeki ilk konum her saat farklı bir slayt gösterir. Boş bırakılırsa tüm slaytlar sırayla kayar."
+    },
+    {
+      "type": "checkbox",
+      "id": "disable_slide_fade",
+      "label": "Geçişte soldurma efektini kapat",
+      "info": "Slaytlar tam opak kalır; kayarken arka plan ve komşu slayt görünmez. Tam ekran banner'lar için önerilir.",
+      "default": false
     },
     {
       "type": "checkbox",
