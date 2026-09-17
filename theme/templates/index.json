@@ -666,7 +666,7 @@
         "hourly_rotation": true,
         "rotation_order": "1,3,5,7,9,11",
         "disable_slide_fade": true,
-        "fit_to_viewport": true
+        "fit_to_viewport": false
       }
     },
     "product_list_4jqyPz": {
