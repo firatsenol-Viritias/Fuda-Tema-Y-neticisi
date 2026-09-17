@@ -63,7 +63,7 @@
 
 <div class="section-background color-{{ section.settings.color_scheme }}"></div>
 <div
-  class="slideshow-section spacing-style section {{ section_width_class }} color-{{ section.settings.color_scheme }} disable-section-top-offset{% if section.settings.disable_slide_fade %} slideshow-section--no-fade{% endif %}"
+  class="slideshow-section spacing-style section {{ section_width_class }} color-{{ section.settings.color_scheme }} disable-section-top-offset{% if section.settings.disable_slide_fade %} slideshow-section--no-fade{% endif %}{% if section.settings.fit_to_viewport %} slideshow-section--fit{% endif %}"
   style="{% render 'spacing-padding', settings: section.settings %}; --slideshow-gap: {{ section.settings.slideshow_gap }}px;{% if rounded_slide_corners %} --corner-radius: {{ section.settings.corner_radius }}px;{% endif %}"
 >
   <h2 class="visually-hidden">{{ 'accessibility.slideshow' | t }}</h2>
@@ -170,6 +170,33 @@
   .slideshow-section--no-fade .slide__content {
     opacity: 1;
     animation: none;
+  }
+
+  /* Banner'in tamami ekrana sigsin.
+
+     Slaytlar 16:9; yukseklik tamamen genislikten turuyor. Tam genislikte
+     16:9 bir banner genis ekranlarda viewport'tan uzun kaliyor ve alt kenar
+     fold'un altinda kaliyordu (olcum: 1920x960'ta 1081px, 120px tasma).
+
+     Genisligi, 16:9 yuksekligi kalan viewport yuksekligini asmayacak
+     sekilde sinirliyoruz. --header-group-height duyuru cubugu dahil gercek
+     header yuksekligi; header.js body uzerinde guncelliyor, JS oncesi tema
+     varsayilani 60px.
+
+     Mobilde banner zaten kisa oldugu icin sinir devreye girmez. */
+  .slideshow-section--fit slideshow-component {
+    /* width:100% sart: bilesen grid/flex icinde shrink-to-fit davraniyor ve
+       icerigi yatay kaydirici oldugu icin dogal genisligi yok; yalnizca
+       max-width verildiginde genislik 0'a cokuyor. */
+    width: 100%;
+    max-width: calc((100svh - var(--header-group-height, 60px)) * 16 / 9);
+    margin-inline: auto;
+  }
+
+  @supports not (height: 100svh) {
+    .slideshow-section--fit slideshow-component {
+      max-width: calc((100vh - var(--header-group-height, 60px)) * 16 / 9);
+    }
   }
 
   .slideshow-section {
@@ -474,6 +501,13 @@
       "id": "disable_slide_fade",
       "label": "Geçişte soldurma efektini kapat",
       "info": "Slaytlar tam opak kalır; kayarken arka plan ve komşu slayt görünmez. Tam ekran banner'lar için önerilir.",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "fit_to_viewport",
+      "label": "Banner'ı ekrana sığdır",
+      "info": "Slayt genişliği, 16:9 yüksekliği ekranı aşmayacak şekilde sınırlanır. Banner'ın tamamı kaydırmadan görünür; geniş ekranlarda kenarlarda boşluk kalır.",
       "default": false
     },
     {
