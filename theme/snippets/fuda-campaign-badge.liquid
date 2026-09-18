@@ -14,7 +14,7 @@
 
 {% liquid
   assign campaign_badge_text = 'İKİNCİSİ BEDAVA'
-  assign campaign_handles = 'hasir-cantalar,puff-go' | split: ','
+  assign campaign_handles = 'hasir-cantalar,puff-go,milaro' | split: ','
 
   assign is_campaign_product = false
   if collection != blank and campaign_handles contains collection.handle
