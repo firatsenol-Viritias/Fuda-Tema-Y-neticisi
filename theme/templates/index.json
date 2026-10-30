@@ -31,8 +31,8 @@
               "type": "image",
               "name": "t:names.image",
               "settings": {
-                "image": "shopify://shop_images/ChatGPT_Image_17_Eyl_2026_18_08_38_6.png",
-                "link": "shopify://collections/avantajli-urunler",
+                "image": "shopify://shop_images/fuda-kis-colorpuff-soguk-gunler.png",
+                "link": "shopify://collections/puff-go",
                 "image_ratio": "adapt",
                 "width": "fill",
                 "custom_width": 100,
@@ -190,8 +190,8 @@
               "type": "image",
               "name": "t:names.image",
               "settings": {
-                "image": "shopify://shop_images/ChatGPT_Image_17_Eyl_2026_18_08_35_1.png",
-                "link": "shopify://collections/colorfull",
+                "image": "shopify://shop_images/fuda-kis-colorpuff-renk-kat.png",
+                "link": "shopify://collections/puff-go",
                 "image_ratio": "adapt",
                 "width": "fill",
                 "custom_width": 100,
